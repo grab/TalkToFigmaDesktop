@@ -38,6 +38,11 @@
 > [!TIP]
 > This project is a Kotlin Compose Desktop application ported from [@sonnylazuardi](https://github.com/sonnylazuardi)'s [**cursor-talk-to-figma-mcp**](https://github.com/sonnylazuardi/cursor-talk-to-figma-mcp) project, enabling direct WebSocket and MCP server capabilities. We deeply appreciate the innovative ideas and implementation of the original project.
 
+## ⚠️ Disclaimer
+
+> [!IMPORTANT]
+> **This project is not affiliated with, sponsored by, or endorsed by Figma, Inc.** This is an independent, community-developed open source project that provides interoperability with Figma's platform. "Figma" is a trademark of Figma, Inc. The use of the Figma name in this project is purely descriptive, indicating the software's functionality to interact with Figma files and the Figma API.
+
 ## Features
 
 - 🚀 **Start/Stop Servers**: Control WebSocket and MCP servers from tray menu
