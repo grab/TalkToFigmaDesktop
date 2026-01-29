@@ -1,0 +1,22 @@
+# TalkToFigma Desktop Environment Configuration
+
+# ===== Apple Developer (Required for macOS code signing) =====
+# Get these from https://developer.apple.com/account
+export APPLE_ID="your.email@example.com"
+export APPLE_PASSWORD="xxxx-xxxx-xxxx-xxxx"  # App-specific password
+export APPLE_TEAM_ID="XXXXXXXXXX"  # 10-character Team ID
+
+# Code Signing Identity (certificate name from Keychain)
+# Find available identities: security find-identity -v -p codesigning
+# Import your certificate first: security import YourCert.p12 -k ~/Library/Keychains/login.keychain-db
+export SIGNING_IDENTITY="Developer ID Application: YOUR COMPANY NAME (TEAM_ID)"
+
+# ===== Google Analytics (Optional) =====
+# Uncomment to enable analytics
+# export GOOGLE_ANALYTICS_ID="G-XXXXXXXXXX"
+# export GOOGLE_ANALYTICS_API_SECRET="your_api_secret"
+
+# ===== Figma OAuth (Optional, for development) =====
+# Get from https://www.figma.com/developers/apps
+# export FIGMA_CLIENT_ID="your_client_id"
+# export FIGMA_CLIENT_SECRET="your_client_secret"

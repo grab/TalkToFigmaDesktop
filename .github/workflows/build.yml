@@ -1,0 +1,187 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  actions: read
+  checks: write
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  # Test stage - runs on Linux for speed
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline
+
+      - name: Run linter
+        run: npm run lint -- --max-warnings=-1
+
+  # Build stage - macOS (without code signing)
+  build-macos:
+    runs-on: macos-latest
+    needs: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Set version from tag
+        run: |
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=$TAG_VERSION" >> $GITHUB_ENV
+          npm version $TAG_VERSION --no-git-tag-version --allow-same-version
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline
+
+      - name: Build macOS app (unsigned)
+        run: npm run make -- --platform=darwin --arch=universal
+        env:
+          # Disable code signing by not providing credentials
+          SIGNING_IDENTITY: ''
+
+      - name: List build artifacts
+        run: |
+          echo "=== Build artifacts ==="
+          find out/make -type f
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          path: out/make/*.dmg
+          if-no-files-found: warn
+
+      - name: Upload ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-zip
+          path: out/make/zip/darwin/**/*.zip
+          if-no-files-found: warn
+
+  # Build stage - Windows
+  build-windows:
+    runs-on: windows-latest
+    needs: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Set version from tag
+        shell: bash
+        run: |
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=$TAG_VERSION" >> $GITHUB_ENV
+          npm version $TAG_VERSION --no-git-tag-version --allow-same-version
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline
+
+      - name: Build Windows app
+        run: npm run make -- --platform=win32
+        env:
+          # MSIX maker will run without signing in test mode
+          # For production, set WINDOWS_SIGN_CERTIFICATE and WINDOWS_SIGN_PASSWORD
+          DEBUG: electron-windows-msix*
+
+      - name: List build artifacts
+        shell: bash
+        run: |
+          echo "=== Build artifacts ==="
+          find out/make -type f
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: |
+            out/make/squirrel.windows/**/*.exe
+            out/make/squirrel.windows/**/*.nupkg
+            out/make/msix/**/*.msix
+          if-no-files-found: warn
+
+  # Create GitHub Release
+  create-release:
+    runs-on: ubuntu-latest
+    needs: [build-macos, build-windows]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List downloaded artifacts
+        run: |
+          echo "=== Downloaded artifacts ==="
+          find artifacts -type f
+
+      - name: Extract version from tag
+        run: |
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=$TAG_VERSION" >> $GITHUB_ENV
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          make_latest: true
+          name: TalkToFigma Desktop ${{ github.ref_name }}
+          body: |
+            ## TalkToFigma Desktop ${{ github.ref_name }}
+
+            ### 📦 Downloads
+            - **macOS DMG**: Universal binary (Apple Silicon + Intel) - unsigned community build
+            - **macOS ZIP**: Alternative distribution format
+            - **Windows Squirrel**: Traditional EXE installer
+            - **Windows MSIX**: Microsoft Store package (experimental)
+
+            ### ⚠️ Note
+            These are **unsigned community builds** for testing purposes.
+            For signed production builds with notarization, use the GitLab CI pipeline.
+
+            ### 📋 Requirements
+            - macOS 10.15 (Catalina) or later
+            - Windows 10 or later
+            - Node.js 18+ (for MCP server)
+
+            ### 🚀 What's New
+            See commit history and release notes below for details.
+          files: |
+            artifacts/macos-dmg/*.dmg
+            artifacts/macos-zip/**/*.zip
+            artifacts/windows-build/**/*.exe
+            artifacts/windows-build/**/*.nupkg
+            artifacts/windows-build/**/*.msix

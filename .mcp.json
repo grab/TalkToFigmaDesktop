@@ -1,0 +1,10 @@
+{
+    "mcpServers": {
+        "TalkToFigmaDesktop": {
+            "command": "node",
+            "args": [
+                "/Users/jude.park/Library/Application Support/TalkToFigma/mcp-server.cjs"
+            ]
+        }
+    }
+}

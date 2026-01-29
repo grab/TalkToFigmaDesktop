@@ -1,0 +1,49 @@
+# Node.js
+logs
+*.log
+npm-debug.log*
+node_modules/
+*.tsbuildinfo
+
+# Build outputs
+out/
+dist/
+.vite/
+.webpack/
+
+# Environment
+.env
+.env.test
+.envrc
+
+# IDEs
+.vscode/
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# User-specific
+.claude/
+.cursor/
+
+# Cache
+.cache
+.npm
+.eslintcache
+
+# Apple Developer certificates and profiles
+*.p12
+*.pem
+*.cer
+*.crt
+*.provisionprofile
+*.mobileprovision
+*.developerprofile
+
+# GitLab Runner artifacts (local runner)
+builds/
+cache/
+.gitlab-runner/

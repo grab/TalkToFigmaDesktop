@@ -1,0 +1,157 @@
+stages:
+  - test
+  - build-macos
+  - create-release
+
+variables:
+  NODE_VERSION: "18"
+  # Prevent npm install warnings
+  npm_config_loglevel: "error"
+
+workflow:
+  rules:
+    - if: $CI_COMMIT_TAG
+
+# Test stage - runs on Linux for speed
+test:
+  stage: test
+  image: node:18-alpine
+  before_script:
+    - apk add --no-cache git
+  script:
+    - npm ci --prefer-offline
+    - npm run lint -- --max-warnings=-1
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}-${NODE_VERSION}
+    paths:
+      - node_modules/
+      - .npm/
+    policy: pull-push
+
+# Build stage - requires macOS for code signing and DMG creation
+build-macos:
+  stage: build-macos
+  tags:
+    - macos
+  before_script:
+    # Verify required environment variables
+    - |
+      if [ -z "$APPLE_ID" ] || [ -z "$APPLE_PASSWORD" ] || [ -z "$APPLE_TEAM_ID" ] || [ -z "$SIGNING_IDENTITY" ]; then
+        echo "Error: Missing required environment variables for code signing"
+        echo "Required: APPLE_ID, APPLE_PASSWORD, APPLE_TEAM_ID, SIGNING_IDENTITY"
+        exit 1
+      fi
+    # Import certificate if provided as base64
+    - |
+      if [ -n "$SIGNING_CERTIFICATE_BASE64" ] && [ -n "$SIGNING_CERTIFICATE_PASSWORD" ]; then
+        echo "Importing code signing certificate..."
+
+        # Create temporary keychain
+        KEYCHAIN_PATH=~/Library/Keychains/ci-build.keychain-db
+        KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+
+        # Delete keychain if it exists
+        security delete-keychain "$KEYCHAIN_PATH" || true
+
+        # Create new temporary keychain
+        security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+        # Set keychain settings (no timeout, no lock)
+        security set-keychain-settings "$KEYCHAIN_PATH"
+
+        # Unlock keychain
+        security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+        # Add to keychain search list
+        security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | sed s/\"//g)
+
+        # Import certificate
+        echo "$SIGNING_CERTIFICATE_BASE64" | base64 -d > certificate.p12
+        security import certificate.p12 -k "$KEYCHAIN_PATH" -P "$SIGNING_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/productbuild
+        rm certificate.p12
+
+        # Allow codesign to access the certificate without prompting
+        security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+        # Set default keychain
+        security default-keychain -s "$KEYCHAIN_PATH"
+      fi
+  script:
+    # Set version from tag
+    - |
+      if [ -n "$CI_COMMIT_TAG" ]; then
+        TAG_VERSION=${CI_COMMIT_TAG#v}
+        echo "Setting version to $TAG_VERSION"
+        npm version $TAG_VERSION --no-git-tag-version --allow-same-version
+      fi
+    - npm ci --prefer-offline
+    - npm run make -- --platform=darwin --arch=universal
+  after_script:
+    # Clean up temporary keychain
+    - security delete-keychain ~/Library/Keychains/ci-build.keychain-db || true
+    - security default-keychain -s ~/Library/Keychains/login.keychain-db || true
+    # Upload artifacts to Package Registry
+    - VERSION=${CI_COMMIT_TAG#v}
+    - |
+      if [ -n "$CI_COMMIT_TAG" ]; then
+        echo "Uploading DMG to Package Registry..."
+        curl --header "JOB-TOKEN: $CI_JOB_TOKEN" \
+          --upload-file "out/make/TalkToFigma Desktop-${VERSION}-universal.dmg" \
+          "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/talktofigma-desktop/${VERSION}/TalkToFigma-Desktop-${VERSION}-universal.dmg"
+
+        echo "Uploading ZIP to Package Registry..."
+        curl --header "JOB-TOKEN: $CI_JOB_TOKEN" \
+          --upload-file "out/make/zip/darwin/universal/TalkToFigma Desktop-darwin-universal-${VERSION}.zip" \
+          "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/talktofigma-desktop/${VERSION}/TalkToFigma-Desktop-${VERSION}-darwin-universal.zip"
+      fi
+  artifacts:
+    name: "TalkToFigma-Desktop-$CI_COMMIT_TAG-macOS"
+    paths:
+      - out/make/*.dmg
+      - out/make/zip/darwin/**/*.zip
+    expire_in: 1 week
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}-${NODE_VERSION}-macos
+    paths:
+      - node_modules/
+      - .npm/
+    policy: pull-push
+
+# Release stage - creates GitLab release with artifacts from Package Registry
+create-release:
+  stage: create-release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - job: build-macos
+  script:
+    - apk add --no-cache curl
+    - VERSION=${CI_COMMIT_TAG#v}
+    - echo "Version is $VERSION"
+    - DMG_URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/talktofigma-desktop/${VERSION}/TalkToFigma-Desktop-${VERSION}-universal.dmg"
+    - ZIP_URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/talktofigma-desktop/${VERSION}/TalkToFigma-Desktop-${VERSION}-darwin-universal.zip"
+    - echo "DMG URL=$DMG_URL"
+    - echo "ZIP URL=$ZIP_URL"
+    - echo "Creating release for $CI_COMMIT_TAG"
+    - |
+      release-cli create \
+        --name "TalkToFigma Desktop ${CI_COMMIT_TAG} (Grab Taxi Internal)" \
+        --tag-name "${CI_COMMIT_TAG}" \
+        --description "## TalkToFigma Desktop ${CI_COMMIT_TAG} (Grab Taxi Internal)
+
+      ### 📦 Downloads
+      - **macOS DMG**: Universal binary (Apple Silicon + Intel)
+      - **macOS ZIP**: Alternative distribution format
+
+      ### 🔒 Security
+      - Code signed with Grab Taxi Developer ID
+      - Notarized by Apple
+      - Bundle ID: \`com.grabtaxi.klever\`
+
+      ### 📋 Requirements
+      - macOS 10.15 (Catalina) or later
+      - Node.js 18+ (for MCP server)
+
+      ### 🚀 What's New
+      See commit history for details." \
+        --assets-link "{\"name\":\"TalkToFigma Desktop DMG (Universal)\",\"url\":\"${DMG_URL}\",\"link_type\":\"package\"}" \
+        --assets-link "{\"name\":\"TalkToFigma Desktop ZIP (Universal)\",\"url\":\"${ZIP_URL}\",\"link_type\":\"package\"}"

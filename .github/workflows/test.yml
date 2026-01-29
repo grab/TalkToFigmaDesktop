@@ -1,0 +1,39 @@
+name: Test
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Display Node.js information
+        run: |
+          echo "==== Node.js Information ===="
+          node --version
+          npm --version
+          echo "============================"
+      
+      - name: Install dependencies
+        run: npm ci --prefer-offline
+      
+      - name: Run linter
+        run: npm run lint -- --max-warnings=-1
+      
+      # Note: Electron tests would require a display, so we only run linting here
+      # Add test script when unit tests are available  
