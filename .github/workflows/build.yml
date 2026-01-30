@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (e.g., 2.0.2)'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -49,18 +55,48 @@ jobs:
 
       - name: Set version from tag
         run: |
-          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          if [ -n "${{ inputs.version }}" ]; then
+            TAG_VERSION="${{ inputs.version }}"
+          else
+            TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          fi
           echo "VERSION=$TAG_VERSION" >> $GITHUB_ENV
           npm version $TAG_VERSION --no-git-tag-version --allow-same-version
 
       - name: Install dependencies
         run: npm ci --prefer-offline
 
+      - name: Verify environment variables
+        run: |
+          echo "Verifying environment variables..."
+          if [ -z "$FIGMA_CLIENT_ID" ] || [ -z "$FIGMA_CLIENT_SECRET" ]; then
+            echo "⚠️  Warning: FIGMA_CLIENT_ID or FIGMA_CLIENT_SECRET not set"
+            echo "OAuth authentication will not work in the built app"
+          else
+            echo "✅ Figma OAuth credentials configured"
+          fi
+          if [ -z "$GOOGLE_ANALYTICS_ID" ] || [ -z "$GOOGLE_ANALYTICS_API_SECRET" ]; then
+            echo "⚠️  Warning: Google Analytics credentials not set"
+          else
+            echo "✅ Google Analytics configured"
+          fi
+        env:
+          FIGMA_CLIENT_ID: ${{ secrets.FIGMA_CLIENT_ID }}
+          FIGMA_CLIENT_SECRET: ${{ secrets.FIGMA_CLIENT_SECRET }}
+          GOOGLE_ANALYTICS_ID: ${{ secrets.GOOGLE_ANALYTICS_ID }}
+          GOOGLE_ANALYTICS_API_SECRET: ${{ secrets.GOOGLE_ANALYTICS_API_SECRET }}
+
       - name: Build macOS app (unsigned)
         run: npm run make -- --platform=darwin --arch=universal
         env:
           # Disable code signing by not providing credentials
           SIGNING_IDENTITY: ''
+          # Inject environment variables at build time via Vite define
+          # These will be compiled into the binary as literal values
+          FIGMA_CLIENT_ID: ${{ secrets.FIGMA_CLIENT_ID }}
+          FIGMA_CLIENT_SECRET: ${{ secrets.FIGMA_CLIENT_SECRET }}
+          GOOGLE_ANALYTICS_ID: ${{ secrets.GOOGLE_ANALYTICS_ID }}
+          GOOGLE_ANALYTICS_API_SECRET: ${{ secrets.GOOGLE_ANALYTICS_API_SECRET }}
 
       - name: List build artifacts
         run: |
@@ -98,12 +134,37 @@ jobs:
       - name: Set version from tag
         shell: bash
         run: |
-          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          if [ -n "${{ inputs.version }}" ]; then
+            TAG_VERSION="${{ inputs.version }}"
+          else
+            TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          fi
           echo "VERSION=$TAG_VERSION" >> $GITHUB_ENV
           npm version $TAG_VERSION --no-git-tag-version --allow-same-version
 
       - name: Install dependencies
         run: npm ci --prefer-offline
+
+      - name: Verify environment variables
+        shell: bash
+        run: |
+          echo "Verifying environment variables..."
+          if [ -z "$FIGMA_CLIENT_ID" ] || [ -z "$FIGMA_CLIENT_SECRET" ]; then
+            echo "⚠️  Warning: FIGMA_CLIENT_ID or FIGMA_CLIENT_SECRET not set"
+            echo "OAuth authentication will not work in the built app"
+          else
+            echo "✅ Figma OAuth credentials configured"
+          fi
+          if [ -z "$GOOGLE_ANALYTICS_ID" ] || [ -z "$GOOGLE_ANALYTICS_API_SECRET" ]; then
+            echo "⚠️  Warning: Google Analytics credentials not set"
+          else
+            echo "✅ Google Analytics configured"
+          fi
+        env:
+          FIGMA_CLIENT_ID: ${{ secrets.FIGMA_CLIENT_ID }}
+          FIGMA_CLIENT_SECRET: ${{ secrets.FIGMA_CLIENT_SECRET }}
+          GOOGLE_ANALYTICS_ID: ${{ secrets.GOOGLE_ANALYTICS_ID }}
+          GOOGLE_ANALYTICS_API_SECRET: ${{ secrets.GOOGLE_ANALYTICS_API_SECRET }}
 
       - name: Build Windows app
         run: npm run make -- --platform=win32
@@ -111,6 +172,12 @@ jobs:
           # MSIX maker will run without signing in test mode
           # For production, set WINDOWS_SIGN_CERTIFICATE and WINDOWS_SIGN_PASSWORD
           DEBUG: electron-windows-msix*
+          # Inject environment variables at build time via Vite define
+          # These will be compiled into the binary as literal values
+          FIGMA_CLIENT_ID: ${{ secrets.FIGMA_CLIENT_ID }}
+          FIGMA_CLIENT_SECRET: ${{ secrets.FIGMA_CLIENT_SECRET }}
+          GOOGLE_ANALYTICS_ID: ${{ secrets.GOOGLE_ANALYTICS_ID }}
+          GOOGLE_ANALYTICS_API_SECRET: ${{ secrets.GOOGLE_ANALYTICS_API_SECRET }}
 
       - name: List build artifacts
         shell: bash
@@ -148,8 +215,15 @@ jobs:
 
       - name: Extract version from tag
         run: |
-          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          if [ -n "${{ inputs.version }}" ]; then
+            TAG_VERSION="${{ inputs.version }}"
+            TAG_NAME="v$TAG_VERSION"
+          else
+            TAG_VERSION=${GITHUB_REF#refs/tags/v}
+            TAG_NAME=${GITHUB_REF#refs/tags/}
+          fi
           echo "VERSION=$TAG_VERSION" >> $GITHUB_ENV
+          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -158,9 +232,9 @@ jobs:
           prerelease: false
           generate_release_notes: true
           make_latest: true
-          name: TalkToFigma Desktop ${{ github.ref_name }}
+          name: TalkToFigma Desktop ${{ env.TAG_NAME }}
           body: |
-            ## TalkToFigma Desktop ${{ github.ref_name }}
+            ## TalkToFigma Desktop ${{ env.TAG_NAME }}
 
             ### 📦 Downloads
             - **macOS DMG**: Universal binary (Apple Silicon + Intel) - unsigned community build
