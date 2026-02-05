@@ -8,6 +8,7 @@ import { promises as fs } from 'fs'
 import path from 'path'
 import type { McpClient } from './client-configs'
 import { expandPath } from './config-detector'
+import { getStdioServerDisplayPath } from '../../main/utils/stdio-path'
 
 export interface ConfigWriteResult {
   success: boolean
@@ -77,9 +78,13 @@ export async function autoConfigureClient(
       existingConfig.mcpServers = {}
     }
 
-    // Add or update TalkToFigmaDesktop server
+    // Add or update TalkToFigmaDesktop server with stdio configuration
+    const stdioServerPath = getStdioServerDisplayPath()
     existingConfig.mcpServers[client.serverName] = {
-      url: 'http://127.0.0.1:3056/sse'
+      type: 'stdio',
+      command: 'node',
+      args: [stdioServerPath],
+      env: {}
     }
 
     // Write updated config with pretty formatting

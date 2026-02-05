@@ -79,7 +79,9 @@ export function McpClientItem({ client }: McpClientItemProps) {
 
   const getCliCommand = () => {
     if (client.id === 'claude-code') {
-      return `claude mcp add TalkToFigmaDesktop node ${stdioPath}`
+      // Wrap path in quotes if it contains spaces
+      const quotedPath = stdioPath.includes(' ') ? `"${stdioPath}"` : stdioPath
+      return `claude mcp add TalkToFigmaDesktop node ${quotedPath}`
     }
     return client.cliCommand || ''
   }
