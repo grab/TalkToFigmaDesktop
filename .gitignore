@@ -14,7 +14,6 @@ dist/
 # Environment
 .env
 .env.test
-.envrc
 
 # IDEs
 .vscode/

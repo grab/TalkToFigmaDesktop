@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 import path from 'node:path';
 
 // Load .env file at build time (for npm run make)
-// In development, direnv loads .envrc which takes precedence
+// In development, variables may be pre-set by shell which take precedence
 // In CI/CD, GitLab CI exports variables which take precedence
 // dotenv will never modify any environment variables that have already been set
 dotenv.config();
