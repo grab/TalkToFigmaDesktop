@@ -27,11 +27,16 @@ const logger = createLogger('GA4');
 /**
  * GA4 Configuration
  * Supports both GOOGLE_ANALYTICS_* (Kotlin compatibility) and GA4_* naming
+ * Uses compile-time injected constants or falls back to runtime env vars
  */
 const GA4_MEASUREMENT_ID =
-  process.env.GOOGLE_ANALYTICS_ID || process.env.GA4_MEASUREMENT_ID || 'G-XXXXXXXXXX';
+  (typeof __GOOGLE_ANALYTICS_ID__ !== 'undefined' ? __GOOGLE_ANALYTICS_ID__ : process.env.GOOGLE_ANALYTICS_ID) ||
+  process.env.GA4_MEASUREMENT_ID ||
+  'G-XXXXXXXXXX';
 const GA4_API_SECRET =
-  process.env.GOOGLE_ANALYTICS_API_SECRET || process.env.GA4_API_SECRET || '';
+  (typeof __GOOGLE_ANALYTICS_API_SECRET__ !== 'undefined' ? __GOOGLE_ANALYTICS_API_SECRET__ : process.env.GOOGLE_ANALYTICS_API_SECRET) ||
+  process.env.GA4_API_SECRET ||
+  '';
 const GA4_ENDPOINT = 'https://www.google-analytics.com/mp/collect';
 
 /**

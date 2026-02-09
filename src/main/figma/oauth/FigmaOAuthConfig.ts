@@ -52,10 +52,14 @@ export const OAUTH_CONSTANTS = {
 
 /**
  * Get OAuth configuration from environment variables
+ * 
+ * Uses compile-time injected constants (__FIGMA_CLIENT_ID__, __FIGMA_CLIENT_SECRET__)
+ * which are replaced by Vite during build. Falls back to process.env for development.
  */
 export function getOAuthConfig(): FigmaOAuthConfig {
-  const clientId = process.env.FIGMA_CLIENT_ID;
-  const clientSecret = process.env.FIGMA_CLIENT_SECRET;
+  // Use compile-time injected values (from Vite define) or fall back to runtime env vars
+  const clientId = (typeof __FIGMA_CLIENT_ID__ !== 'undefined' ? __FIGMA_CLIENT_ID__ : process.env.FIGMA_CLIENT_ID) || '';
+  const clientSecret = (typeof __FIGMA_CLIENT_SECRET__ !== 'undefined' ? __FIGMA_CLIENT_SECRET__ : process.env.FIGMA_CLIENT_SECRET) || '';
 
   if (!clientId || !clientSecret) {
     throw new Error(
@@ -122,13 +126,17 @@ export function buildAuthUrl(state: string, redirectUri?: string): string {
 export function logOAuthConfig(logger: any): void {
   try {
     const config = getOAuthConfig();
+    const configSource = typeof __FIGMA_CLIENT_ID__ !== 'undefined' 
+      ? 'compile-time injection' 
+      : (process.env.FIGMA_CLIENT_ID ? 'environment variables' : 'unknown');
+    
     logger.info('Figma OAuth Configuration:', {
       authUrl: config.authUrl,
       tokenUrl: config.tokenUrl,
       redirectUri: config.redirectUri,
       scope: config.scope,
       clientId: `${config.clientId.slice(0, 8)}...`,
-      configSource: process.env.FIGMA_CLIENT_ID ? 'environment variables' : 'unknown',
+      configSource,
     });
   } catch (error) {
     logger.error('Failed to load OAuth configuration:', error);
