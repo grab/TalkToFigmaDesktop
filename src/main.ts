@@ -18,6 +18,7 @@ import { IPC_CHANNELS, STORE_KEYS } from './shared/constants';
 import type { ServerState } from './shared/types';
 import { getStore, saveFigmaUser, getFigmaUser } from './main/utils/store';
 import { installStdioServer } from './main/utils/stdio-installer';
+import { initializeUpdater } from './main/utils/updater';
 
 // Declare Vite plugin globals
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
@@ -335,6 +336,9 @@ app.on('ready', async () => {
   } else {
     logger.error(`❌ Failed to install MCP stdio server: ${installResult.error}`);
   }
+
+  // Initialize auto-updater (production only)
+  initializeUpdater();
 
   createWindow();
 

@@ -1,12 +1,17 @@
 import { defineConfig } from 'vite';
-import dotenv from 'dotenv';
 import path from 'node:path';
 
 // Load .env file at build time (for npm run make)
 // In development, variables may be pre-set by shell which take precedence
-// In CI/CD, GitLab CI exports variables which take precedence
-// dotenv will never modify any environment variables that have already been set
-dotenv.config();
+// In CI/CD, GitHub Actions/GitLab CI exports variables which take precedence
+// Safe import: only load dotenv if available (may not be in CI)
+try {
+  const dotenv = await import('dotenv');
+  dotenv.config();
+} catch {
+  // dotenv not available (CI environment) - environment variables already set
+  console.log('dotenv not available, using existing environment variables');
+}
 
 // https://vitejs.dev/config
 export default defineConfig({

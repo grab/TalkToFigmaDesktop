@@ -19,6 +19,7 @@ import { createLogger } from '../utils/logger';
 
 import { TalkToFigmaServerManager } from './TalkToFigmaServerManager';
 import { TalkToFigmaService } from './TalkToFigmaService';
+import { checkForUpdates } from '../utils/updater';
 
 const logger = createLogger('Tray');
 
@@ -143,6 +144,13 @@ export class TalkToFigmaTray {
             await this.startAll();
           }
         },
+      },
+      { type: 'separator' },
+
+      // ═══ UPDATE CHECK ═══
+      {
+        label: 'Check for Updates...',
+        click: () => checkForUpdates(true),
       },
       { type: 'separator' },
 
