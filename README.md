@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./icon.png" width="128" height="128" alt="TalkToFigma Desktop">
+  <img src="./public/icon.png" width="128" height="128" alt="TalkToFigma Desktop">
 </p>
 
 <h1 align="center">TalkToFigma Desktop</h1>

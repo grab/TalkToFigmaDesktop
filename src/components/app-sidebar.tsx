@@ -23,9 +23,9 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 
-// Logo images from public directory
-const logoDark = "logo-dark.png"
-const logoLight = "logo-light.png"
+// Logo images from public directory (reusing tray icons)
+const logoDark = "tray_dark.png"
+const logoLight = "trayTemplate.png"
 
 // Navigation items
 const navItems = [
