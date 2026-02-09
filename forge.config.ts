@@ -9,39 +9,34 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import { PublisherGithub } from '@electron-forge/publisher-github';
 import dotenv from 'dotenv';
 
-// Load environment variables from .env file
+// Load environment variables from .env file (local development only)
 dotenv.config();
 
-// Build packager config with conditional code signing
-const packagerConfig: any = {
-  asar: true,
-  appBundleId: 'com.grabtaxi.klever',
-  name: 'TalkToFigma Desktop',
-  executableName: 'talktofigma-desktop',
-  icon: './public/icon', // Electron Forge will append .icns, .ico, .png automatically
-  extraResource: [
-    './public',
-  ],
-};
-
-// Only add code signing for GitLab/production builds
-if (process.env.ENABLE_CODE_SIGNING === 'true') {
-  packagerConfig.osxSign = {
-    identity: process.env.SIGNING_IDENTITY || 'Developer ID Application: GRABTAXI HOLDINGS PTE. LTD. (VU3G7T53K5)',
-    'hardened-runtime': true,
-    'gatekeeper-assess': false,
-    entitlements: 'entitlements.plist',
-    'entitlements-inherit': 'entitlements.plist',
-  };
-  packagerConfig.osxNotarize = {
-    appleId: process.env.APPLE_ID || '',
-    appleIdPassword: process.env.APPLE_PASSWORD || '',
-    teamId: process.env.APPLE_TEAM_ID || 'VU3G7T53K5',
-  };
-}
-
 const config: ForgeConfig = {
-  packagerConfig,
+  packagerConfig: {
+    asar: true,
+    appBundleId: 'com.grabtaxi.klever',
+    name: 'TalkToFigma Desktop',
+    executableName: 'talktofigma-desktop',
+    icon: './public/icon', // Electron Forge will append .icns, .ico, .png automatically
+    extraResource: [
+      './public',
+    ],
+    // Code signing configuration (uses .env locally, CI environment variables in GitLab)
+    osxSign: {
+      identity: process.env.SIGNING_IDENTITY || 'Developer ID Application: GRABTAXI HOLDINGS PTE. LTD. (VU3G7T53K5)',
+      hardenedRuntime: true,
+      'gatekeeper-assess': false,
+      entitlements: 'entitlements.plist',
+      'entitlements-inherit': 'entitlements.plist',
+    },
+    // Notarization configuration
+    osxNotarize: {
+      appleId: process.env.APPLE_ID || '',
+      appleIdPassword: process.env.APPLE_PASSWORD || '',
+      teamId: process.env.APPLE_TEAM_ID || 'VU3G7T53K5',
+    },
+  },
   rebuildConfig: {},
   makers: [
     // macOS: DMG (primary) and ZIP (backup/CI)
