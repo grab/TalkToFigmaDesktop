@@ -136,7 +136,7 @@ export function initializeUpdater() {
  * Manually check for updates
  * @param manual - Whether this is a manual check (shows dialog)
  */
-export function checkForUpdates(manual: boolean = false) {
+export function checkForUpdates(manual = false) {
   isManualCheck = manual;
   
   if (!app.isPackaged) {

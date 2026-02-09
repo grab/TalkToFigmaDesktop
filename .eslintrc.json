@@ -22,6 +22,7 @@
     "out/",
     ".vite/",
     "dist/",
+    "builds/",
     "vite.*.config.ts"
   ],
   "rules": {
