@@ -106,7 +106,6 @@ build-macos:
       export FIGMA_CLIENT_SECRET="${FIGMA_CLIENT_SECRET}"
       export GOOGLE_ANALYTICS_ID="${GOOGLE_ANALYTICS_ID}"
       export GOOGLE_ANALYTICS_API_SECRET="${GOOGLE_ANALYTICS_API_SECRET}"
-      export ENABLE_CODE_SIGNING=true
       npm run make -- --platform=darwin --arch=universal
   after_script:
     # Clean up temporary keychain
