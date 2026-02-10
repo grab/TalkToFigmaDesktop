@@ -87,7 +87,7 @@ jobs:
           GOOGLE_ANALYTICS_API_SECRET: ${{ secrets.GOOGLE_ANALYTICS_API_SECRET }}
 
       - name: Build macOS app (unsigned)
-        run: npm run make -- --platform=darwin --arch=universal
+        run: npm run make -- --platform=darwin --arch=arm64
         env:
           # Disable code signing by not providing credentials
           SIGNING_IDENTITY: ''
