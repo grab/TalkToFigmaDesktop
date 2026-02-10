@@ -1,6 +1,5 @@
 import type { ForgeConfig } from '@electron-forge/shared-types';
 import { MakerSquirrel } from '@electron-forge/maker-squirrel';
-import { MakerMSIX } from '@electron-forge/maker-msix';
 import { MakerZIP } from '@electron-forge/maker-zip';
 import { MakerDMG } from '@electron-forge/maker-dmg';
 import { VitePlugin } from '@electron-forge/plugin-vite';
@@ -44,21 +43,7 @@ const config: ForgeConfig = {
       format: 'ULFO',
     }, ['darwin']),
     new MakerZIP({}, ['darwin']),
-    // Windows: MSIX (for Microsoft Store) and Squirrel (for direct download)
-    new MakerMSIX({
-      manifestVariables: {
-        publisher: 'CN=GRABTAXI HOLDINGS PTE. LTD.',
-        // packageIdentity: MSIX package identity (no spaces allowed)
-        packageIdentity: 'TalkToFigmaDesktop',
-        // packageDisplayName: User-facing package name (spaces allowed)
-        packageDisplayName: 'TalkToFigma Desktop',
-        // appDisplayName: User-facing app name (spaces allowed)
-        appDisplayName: 'TalkToFigma Desktop',
-        // appExecutable: Must match packagerConfig.executableName
-        appExecutable: 'talktofigma-desktop.exe',
-      },
-      // Code signing will be configured in CI via windowsSignOptions
-    }, ['win32']),
+    // Windows: Squirrel for auto-update
     new MakerSquirrel({
       // Squirrel for traditional installer
     }, ['win32']),

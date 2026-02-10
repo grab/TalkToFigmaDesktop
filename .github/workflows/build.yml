@@ -73,17 +73,10 @@ jobs:
           perl -i -pe 'BEGIN{undef $/;} s/osxSign: \{[^}]+\},/osxSign: false,/smg' forge.config.ts
           perl -i -pe 'BEGIN{undef $/;} s/osxNotarize: \{[^}]+\},/osxNotarize: undefined,/smg' forge.config.ts
           
-          # Add osxUniversal configuration to handle adhoc signatures
-          # macOS automatically applies adhoc signatures to arm64 builds even when osxSign: false
-          # This causes _CodeSignature files only on arm64, breaking universal binary merge
-          # x64ArchFiles tells @electron/universal to ignore these signature file differences
-          perl -i -pe 's/(osxNotarize: undefined,)/$1\n    osxUniversal: {\n      x64ArchFiles: "**\/_CodeSignature\/**",\n    },/' forge.config.ts
-          
           echo "Modified forge.config.ts:"
           grep -A 2 "osxSign:" forge.config.ts || echo "osxSign not found"
           grep -A 2 "osxNotarize:" forge.config.ts || echo "osxNotarize not found"
-          grep -A 3 "osxUniversal:" forge.config.ts || echo "osxUniversal not found"
-          echo "✅ Code signing disabled and universal binary config added"
+          echo "✅ Code signing disabled"
 
       - name: Verify environment variables
         run: |
@@ -105,11 +98,19 @@ jobs:
           GOOGLE_ANALYTICS_ID: ${{ secrets.GOOGLE_ANALYTICS_ID }}
           GOOGLE_ANALYTICS_API_SECRET: ${{ secrets.GOOGLE_ANALYTICS_API_SECRET }}
 
-      - name: Build macOS app
-        run: npm run make -- --platform=darwin --arch=universal
+      - name: Build macOS x64 app
+        run: npm run make -- --platform=darwin --arch=x64
         env:
           # Inject environment variables at build time via Vite define
           # These will be compiled into the binary as literal values
+          FIGMA_CLIENT_ID: ${{ secrets.FIGMA_CLIENT_ID }}
+          FIGMA_CLIENT_SECRET: ${{ secrets.FIGMA_CLIENT_SECRET }}
+          GOOGLE_ANALYTICS_ID: ${{ secrets.GOOGLE_ANALYTICS_ID }}
+          GOOGLE_ANALYTICS_API_SECRET: ${{ secrets.GOOGLE_ANALYTICS_API_SECRET }}
+
+      - name: Build macOS arm64 app
+        run: npm run make -- --platform=darwin --arch=arm64
+        env:
           FIGMA_CLIENT_ID: ${{ secrets.FIGMA_CLIENT_ID }}
           FIGMA_CLIENT_SECRET: ${{ secrets.FIGMA_CLIENT_SECRET }}
           GOOGLE_ANALYTICS_ID: ${{ secrets.GOOGLE_ANALYTICS_ID }}
@@ -120,18 +121,32 @@ jobs:
           echo "=== Build artifacts ==="
           find out/make -type f
 
-      - name: Upload DMG artifact
+      - name: Upload DMG x64 artifact
         uses: actions/upload-artifact@v4
         with:
-          name: macos-dmg
+          name: macos-x64-dmg
           path: out/make/*.dmg
           if-no-files-found: warn
 
-      - name: Upload ZIP artifact
+      - name: Upload DMG arm64 artifact
         uses: actions/upload-artifact@v4
         with:
-          name: macos-zip
-          path: out/make/zip/darwin/**/*.zip
+          name: macos-arm64-dmg
+          path: out/make/*.dmg
+          if-no-files-found: warn
+
+      - name: Upload ZIP x64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-x64-zip
+          path: out/make/zip/darwin/x64/*.zip
+          if-no-files-found: warn
+
+      - name: Upload ZIP arm64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-arm64-zip
+          path: out/make/zip/darwin/arm64/*.zip
           if-no-files-found: warn
 
   # Build stage - Windows
@@ -186,9 +201,6 @@ jobs:
       - name: Build Windows app
         run: npm run make -- --platform=win32
         env:
-          # MSIX maker will run without signing in test mode
-          # For production, set WINDOWS_SIGN_CERTIFICATE and WINDOWS_SIGN_PASSWORD
-          DEBUG: electron-windows-msix*
           # Inject environment variables at build time via Vite define
           # These will be compiled into the binary as literal values
           FIGMA_CLIENT_ID: ${{ secrets.FIGMA_CLIENT_ID }}
@@ -209,7 +221,6 @@ jobs:
           path: |
             out/make/squirrel.windows/**/*.exe
             out/make/squirrel.windows/**/*.nupkg
-            out/make/msix/**/*.msix
           if-no-files-found: warn
 
   # Create GitHub Release
@@ -254,10 +265,10 @@ jobs:
             ## TalkToFigma Desktop ${{ env.TAG_NAME }}
 
             ### 📦 Downloads
-            - **macOS DMG**: Universal binary (Apple Silicon + Intel) - unsigned community build
-            - **macOS ZIP**: Alternative distribution format
+            - **macOS x64 DMG**: Intel Macs - unsigned community build
+            - **macOS arm64 DMG**: Apple Silicon Macs - unsigned community build
+            - **macOS ZIP**: Alternative distribution format (both architectures)
             - **Windows Squirrel**: Traditional EXE installer
-            - **Windows MSIX**: Microsoft Store package (experimental)
 
             ### ⚠️ Note
             These are **unsigned community builds** for testing purposes.
@@ -271,8 +282,9 @@ jobs:
             ### 🚀 What's New
             See commit history and release notes below for details.
           files: |
-            artifacts/macos-dmg/*.dmg
-            artifacts/macos-zip/**/*.zip
+            artifacts/macos-x64-dmg/*.dmg
+            artifacts/macos-arm64-dmg/*.dmg
+            artifacts/macos-x64-zip/**/*.zip
+            artifacts/macos-arm64-zip/**/*.zip
             artifacts/windows-build/**/*.exe
             artifacts/windows-build/**/*.nupkg
-            artifacts/windows-build/**/*.msix
