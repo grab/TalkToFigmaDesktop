@@ -13,8 +13,9 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Determine if code signing should be enabled
-// GitHub Actions sets SIGNING_IDENTITY to empty string to disable signing
-const shouldSign = process.env.SIGNING_IDENTITY !== '';
+// - Set DISABLE_CODE_SIGNING=true to disable (used by GitHub Actions)
+// - Or set SIGNING_IDENTITY to empty string
+const shouldSign = process.env.DISABLE_CODE_SIGNING !== 'true' && process.env.SIGNING_IDENTITY !== '';
 
 const config: ForgeConfig = {
   packagerConfig: {
