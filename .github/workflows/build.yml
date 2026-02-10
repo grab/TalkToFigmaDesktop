@@ -72,10 +72,18 @@ jobs:
           # Replace entire osxSign and osxNotarize blocks with false
           perl -i -pe 'BEGIN{undef $/;} s/osxSign: \{[^}]+\},/osxSign: false,/smg' forge.config.ts
           perl -i -pe 'BEGIN{undef $/;} s/osxNotarize: \{[^}]+\},/osxNotarize: undefined,/smg' forge.config.ts
+          
+          # Add osxUniversal configuration to handle adhoc signatures
+          # macOS automatically applies adhoc signatures to arm64 builds even when osxSign: false
+          # This causes _CodeSignature files only on arm64, breaking universal binary merge
+          # x64ArchFiles tells @electron/universal to ignore these signature file differences
+          perl -i -pe 's/(osxNotarize: undefined,)/$1\n    osxUniversal: {\n      x64ArchFiles: "**\/_CodeSignature\/**",\n    },/' forge.config.ts
+          
           echo "Modified forge.config.ts:"
           grep -A 2 "osxSign:" forge.config.ts || echo "osxSign not found"
           grep -A 2 "osxNotarize:" forge.config.ts || echo "osxNotarize not found"
-          echo "✅ Code signing disabled"
+          grep -A 3 "osxUniversal:" forge.config.ts || echo "osxUniversal not found"
+          echo "✅ Code signing disabled and universal binary config added"
 
       - name: Verify environment variables
         run: |
