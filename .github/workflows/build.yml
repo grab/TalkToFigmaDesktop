@@ -108,6 +108,23 @@ jobs:
           GOOGLE_ANALYTICS_ID: ${{ secrets.GOOGLE_ANALYTICS_ID }}
           GOOGLE_ANALYTICS_API_SECRET: ${{ secrets.GOOGLE_ANALYTICS_API_SECRET }}
 
+      - name: Upload DMG x64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-x64-dmg
+          path: out/make/*.dmg
+          if-no-files-found: warn
+
+      - name: Upload ZIP x64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-x64-zip
+          path: out/make/zip/darwin/x64/*.zip
+          if-no-files-found: warn
+
+      - name: Clean x64 build artifacts
+        run: rm -rf out/make
+
       - name: Build macOS arm64 app
         run: npm run make -- --platform=darwin --arch=arm64
         env:
@@ -121,25 +138,11 @@ jobs:
           echo "=== Build artifacts ==="
           find out/make -type f
 
-      - name: Upload DMG x64 artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-x64-dmg
-          path: out/make/*.dmg
-          if-no-files-found: warn
-
       - name: Upload DMG arm64 artifact
         uses: actions/upload-artifact@v4
         with:
           name: macos-arm64-dmg
           path: out/make/*.dmg
-          if-no-files-found: warn
-
-      - name: Upload ZIP x64 artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-x64-zip
-          path: out/make/zip/darwin/x64/*.zip
           if-no-files-found: warn
 
       - name: Upload ZIP arm64 artifact
