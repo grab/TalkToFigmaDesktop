@@ -69,8 +69,12 @@ jobs:
       - name: Disable code signing for GitHub builds
         run: |
           echo "Disabling code signing in forge.config.ts..."
-          # Replace osxSign configuration with false to completely disable signing
-          sed -i '' 's/osxSign: {/osxSign: false, \/\/ Disabled for GitHub Actions\n    __removed: {/' forge.config.ts
+          # Replace entire osxSign and osxNotarize blocks with false
+          perl -i -pe 'BEGIN{undef $/;} s/osxSign: \{[^}]+\},/osxSign: false,/smg' forge.config.ts
+          perl -i -pe 'BEGIN{undef $/;} s/osxNotarize: \{[^}]+\},/osxNotarize: undefined,/smg' forge.config.ts
+          echo "Modified forge.config.ts:"
+          grep -A 2 "osxSign:" forge.config.ts || echo "osxSign not found"
+          grep -A 2 "osxNotarize:" forge.config.ts || echo "osxNotarize not found"
           echo "✅ Code signing disabled"
 
       - name: Verify environment variables
