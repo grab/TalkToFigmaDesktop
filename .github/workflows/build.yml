@@ -89,8 +89,8 @@ jobs:
       - name: Build macOS app
         run: npm run make -- --platform=darwin --arch=universal
         env:
-          # Disable code signing via environment variable
-          DISABLE_CODE_SIGNING: 'true'
+          # Code signing disabled via DISABLE_CODE_SIGNING secret
+          DISABLE_CODE_SIGNING: ${{ secrets.DISABLE_CODE_SIGNING }}
           # Inject environment variables at build time via Vite define
           # These will be compiled into the binary as literal values
           FIGMA_CLIENT_ID: ${{ secrets.FIGMA_CLIENT_ID }}
