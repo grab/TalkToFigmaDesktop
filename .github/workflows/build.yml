@@ -68,9 +68,9 @@ jobs:
 
       - name: Verify required environment variables
         run: |
-          if [ -z "${{ secrets.APPLE_ID }}" ] || [ -z "${{ secrets.APPLE_PASSWORD }}" ] || [ -z "${{ secrets.APPLE_TEAM_ID }}" ] || [ -z "${{ secrets.SIGNING_IDENTITY }}" ]; then
+          if [ -z "${{ vars.APPLE_ID }}" ] || [ -z "${{ secrets.APPLE_PASSWORD }}" ] || [ -z "${{ secrets.APPLE_TEAM_ID }}" ] || [ -z "${{ secrets.SIGNING_IDENTITY }}" ]; then
             echo "❌ Error: Missing required environment variables for code signing"
-            echo "Required: APPLE_ID, APPLE_PASSWORD, APPLE_TEAM_ID, SIGNING_IDENTITY"
+            echo "Required: APPLE_ID (var), APPLE_PASSWORD, APPLE_TEAM_ID, SIGNING_IDENTITY (org secrets)"
             exit 1
           fi
 
@@ -128,12 +128,12 @@ jobs:
       - name: Build macOS universal app
         run: npm run make -- --platform=darwin --arch=universal
         env:
-          # Code signing credentials
-          APPLE_ID: ${{ secrets.APPLE_ID }}
+          # Code signing credentials (org level)
+          APPLE_ID: ${{ vars.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           SIGNING_IDENTITY: ${{ secrets.SIGNING_IDENTITY }}
-          # Runtime configuration
+          # Runtime configuration (repo level)
           FIGMA_CLIENT_ID: ${{ secrets.FIGMA_CLIENT_ID }}
           FIGMA_CLIENT_SECRET: ${{ secrets.FIGMA_CLIENT_SECRET }}
           GOOGLE_ANALYTICS_ID: ${{ secrets.GOOGLE_ANALYTICS_ID }}
