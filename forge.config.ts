@@ -12,11 +12,6 @@ import dotenv from 'dotenv';
 // Load environment variables from .env file (local development only)
 dotenv.config();
 
-// Determine if code signing should be enabled
-// - Set DISABLE_CODE_SIGNING=true to disable (used by GitHub Actions)
-// - Or set SIGNING_IDENTITY to empty string
-const shouldSign = process.env.DISABLE_CODE_SIGNING !== 'true' && process.env.SIGNING_IDENTITY !== '';
-
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
@@ -27,21 +22,20 @@ const config: ForgeConfig = {
     extraResource: [
       './public',
     ],
-    // Code signing configuration (only when enabled)
-    ...(shouldSign && {
-      osxSign: {
-        identity: process.env.SIGNING_IDENTITY || 'Developer ID Application: GRABTAXI HOLDINGS PTE. LTD. (VU3G7T53K5)',
-        hardenedRuntime: true,
-        'gatekeeper-assess': false,
-        entitlements: 'entitlements.plist',
-        'entitlements-inherit': 'entitlements.plist',
-      },
-      osxNotarize: {
-        appleId: process.env.APPLE_ID || '',
-        appleIdPassword: process.env.APPLE_PASSWORD || '',
-        teamId: process.env.APPLE_TEAM_ID || 'VU3G7T53K5',
-      },
-    }),
+    // Code signing configuration (uses .env locally, CI environment variables in GitLab)
+    osxSign: {
+      identity: process.env.SIGNING_IDENTITY || 'Developer ID Application: GRABTAXI HOLDINGS PTE. LTD. (VU3G7T53K5)',
+      hardenedRuntime: true,
+      'gatekeeper-assess': false,
+      entitlements: 'entitlements.plist',
+      'entitlements-inherit': 'entitlements.plist',
+    },
+    // Notarization configuration
+    osxNotarize: {
+      appleId: process.env.APPLE_ID || '',
+      appleIdPassword: process.env.APPLE_PASSWORD || '',
+      teamId: process.env.APPLE_TEAM_ID || 'VU3G7T53K5',
+    },
   },
   rebuildConfig: {},
   makers: [

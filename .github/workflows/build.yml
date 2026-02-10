@@ -66,6 +66,13 @@ jobs:
       - name: Install dependencies
         run: npm ci --prefer-offline
 
+      - name: Disable code signing for GitHub builds
+        run: |
+          echo "Disabling code signing in forge.config.ts..."
+          # Replace osxSign configuration with false to completely disable signing
+          sed -i '' 's/osxSign: {/osxSign: false, \/\/ Disabled for GitHub Actions\n    __removed: {/' forge.config.ts
+          echo "✅ Code signing disabled"
+
       - name: Verify environment variables
         run: |
           echo "Verifying environment variables..."
@@ -89,8 +96,6 @@ jobs:
       - name: Build macOS app
         run: npm run make -- --platform=darwin --arch=universal
         env:
-          # Code signing disabled via DISABLE_CODE_SIGNING secret
-          DISABLE_CODE_SIGNING: ${{ secrets.DISABLE_CODE_SIGNING }}
           # Inject environment variables at build time via Vite define
           # These will be compiled into the binary as literal values
           FIGMA_CLIENT_ID: ${{ secrets.FIGMA_CLIENT_ID }}
