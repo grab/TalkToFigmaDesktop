@@ -39,7 +39,7 @@ jobs:
       - name: Run linter
         run: npm run lint -- --max-warnings=-1
 
-  # Build stage - macOS (without code signing)
+  # Build stage - macOS with code signing
   build-macos:
     runs-on: macos-latest
     needs: test
@@ -66,91 +66,103 @@ jobs:
       - name: Install dependencies
         run: npm ci --prefer-offline
 
-      - name: Disable code signing for GitHub builds
+      - name: Verify required environment variables
         run: |
-          echo "Disabling code signing in forge.config.ts..."
-          # Replace entire osxSign and osxNotarize blocks with false
-          perl -i -pe 'BEGIN{undef $/;} s/osxSign: \{[^}]+\},/osxSign: false,/smg' forge.config.ts
-          perl -i -pe 'BEGIN{undef $/;} s/osxNotarize: \{[^}]+\},/osxNotarize: undefined,/smg' forge.config.ts
+          if [ -z "${{ secrets.APPLE_ID }}" ] || [ -z "${{ secrets.APPLE_PASSWORD }}" ] || [ -z "${{ secrets.APPLE_TEAM_ID }}" ] || [ -z "${{ secrets.SIGNING_IDENTITY }}" ]; then
+            echo "❌ Error: Missing required environment variables for code signing"
+            echo "Required: APPLE_ID, APPLE_PASSWORD, APPLE_TEAM_ID, SIGNING_IDENTITY"
+            exit 1
+          fi
+
+      - name: Import code signing certificate
+        run: |
+          echo "Importing code signing certificate..."
           
-          echo "Modified forge.config.ts:"
-          grep -A 2 "osxSign:" forge.config.ts || echo "osxSign not found"
-          grep -A 2 "osxNotarize:" forge.config.ts || echo "osxNotarize not found"
-          echo "✅ Code signing disabled"
+          # Create temporary keychain
+          KEYCHAIN_PATH=$RUNNER_TEMP/ci-build.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+          
+          # Delete keychain if it exists
+          security delete-keychain "$KEYCHAIN_PATH" 2>/dev/null || true
+          
+          # Create new temporary keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          
+          # Set keychain settings (no timeout, no lock)
+          security set-keychain-settings "$KEYCHAIN_PATH"
+          
+          # Unlock keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          
+          # Add to keychain search list
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | sed s/\"//g)
+          
+          # Import certificate
+          echo "${{ secrets.SIGNING_CERTIFICATE_BASE64 }}" | base64 -d > certificate.p12
+          security import certificate.p12 -k "$KEYCHAIN_PATH" -P "${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}" -T /usr/bin/codesign -T /usr/bin/productbuild
+          rm certificate.p12
+          
+          # Allow codesign to access the certificate without prompting
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          
+          # Set default keychain
+          security default-keychain -s "$KEYCHAIN_PATH"
+          
+          echo "✅ Certificate imported successfully"
 
       - name: Verify environment variables
         run: |
           echo "Verifying environment variables..."
-          if [ -z "$FIGMA_CLIENT_ID" ] || [ -z "$FIGMA_CLIENT_SECRET" ]; then
+          if [ -z "${{ secrets.FIGMA_CLIENT_ID }}" ] || [ -z "${{ secrets.FIGMA_CLIENT_SECRET }}" ]; then
             echo "⚠️  Warning: FIGMA_CLIENT_ID or FIGMA_CLIENT_SECRET not set"
             echo "OAuth authentication will not work in the built app"
           else
             echo "✅ Figma OAuth credentials configured"
           fi
-          if [ -z "$GOOGLE_ANALYTICS_ID" ] || [ -z "$GOOGLE_ANALYTICS_API_SECRET" ]; then
+          if [ -z "${{ secrets.GOOGLE_ANALYTICS_ID }}" ] || [ -z "${{ secrets.GOOGLE_ANALYTICS_API_SECRET }}" ]; then
             echo "⚠️  Warning: Google Analytics credentials not set"
           else
             echo "✅ Google Analytics configured"
           fi
+
+      - name: Build macOS universal app
+        run: npm run make -- --platform=darwin --arch=universal
         env:
+          # Code signing credentials
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          SIGNING_IDENTITY: ${{ secrets.SIGNING_IDENTITY }}
+          # Runtime configuration
           FIGMA_CLIENT_ID: ${{ secrets.FIGMA_CLIENT_ID }}
           FIGMA_CLIENT_SECRET: ${{ secrets.FIGMA_CLIENT_SECRET }}
           GOOGLE_ANALYTICS_ID: ${{ secrets.GOOGLE_ANALYTICS_ID }}
           GOOGLE_ANALYTICS_API_SECRET: ${{ secrets.GOOGLE_ANALYTICS_API_SECRET }}
 
-      - name: Build macOS x64 app
-        run: npm run make -- --platform=darwin --arch=x64
-        env:
-          # Inject environment variables at build time via Vite define
-          # These will be compiled into the binary as literal values
-          FIGMA_CLIENT_ID: ${{ secrets.FIGMA_CLIENT_ID }}
-          FIGMA_CLIENT_SECRET: ${{ secrets.FIGMA_CLIENT_SECRET }}
-          GOOGLE_ANALYTICS_ID: ${{ secrets.GOOGLE_ANALYTICS_ID }}
-          GOOGLE_ANALYTICS_API_SECRET: ${{ secrets.GOOGLE_ANALYTICS_API_SECRET }}
-
-      - name: Upload DMG x64 artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-x64-dmg
-          path: out/make/*.dmg
-          if-no-files-found: warn
-
-      - name: Upload ZIP x64 artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-x64-zip
-          path: out/make/zip/darwin/x64/*.zip
-          if-no-files-found: warn
-
-      - name: Clean x64 build artifacts
-        run: rm -rf out/make
-
-      - name: Build macOS arm64 app
-        run: npm run make -- --platform=darwin --arch=arm64
-        env:
-          FIGMA_CLIENT_ID: ${{ secrets.FIGMA_CLIENT_ID }}
-          FIGMA_CLIENT_SECRET: ${{ secrets.FIGMA_CLIENT_SECRET }}
-          GOOGLE_ANALYTICS_ID: ${{ secrets.GOOGLE_ANALYTICS_ID }}
-          GOOGLE_ANALYTICS_API_SECRET: ${{ secrets.GOOGLE_ANALYTICS_API_SECRET }}
+      - name: Clean up keychain
+        if: always()
+        run: |
+          security delete-keychain $RUNNER_TEMP/ci-build.keychain-db 2>/dev/null || true
+          security default-keychain -s ~/Library/Keychains/login.keychain-db || true
 
       - name: List build artifacts
         run: |
           echo "=== Build artifacts ==="
           find out/make -type f
 
-      - name: Upload DMG arm64 artifact
+      - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
         with:
-          name: macos-arm64-dmg
+          name: macos-universal-dmg
           path: out/make/*.dmg
-          if-no-files-found: warn
+          if-no-files-found: error
 
-      - name: Upload ZIP arm64 artifact
+      - name: Upload ZIP artifact
         uses: actions/upload-artifact@v4
         with:
-          name: macos-arm64-zip
-          path: out/make/zip/darwin/arm64/*.zip
-          if-no-files-found: warn
+          name: macos-universal-zip
+          path: out/make/zip/darwin/universal/*.zip
+          if-no-files-found: error
 
   # Build stage - Windows
   build-windows:
@@ -184,28 +196,21 @@ jobs:
         shell: bash
         run: |
           echo "Verifying environment variables..."
-          if [ -z "$FIGMA_CLIENT_ID" ] || [ -z "$FIGMA_CLIENT_SECRET" ]; then
+          if [ -z "${{ secrets.FIGMA_CLIENT_ID }}" ] || [ -z "${{ secrets.FIGMA_CLIENT_SECRET }}" ]; then
             echo "⚠️  Warning: FIGMA_CLIENT_ID or FIGMA_CLIENT_SECRET not set"
             echo "OAuth authentication will not work in the built app"
           else
             echo "✅ Figma OAuth credentials configured"
           fi
-          if [ -z "$GOOGLE_ANALYTICS_ID" ] || [ -z "$GOOGLE_ANALYTICS_API_SECRET" ]; then
+          if [ -z "${{ secrets.GOOGLE_ANALYTICS_ID }}" ] || [ -z "${{ secrets.GOOGLE_ANALYTICS_API_SECRET }}" ]; then
             echo "⚠️  Warning: Google Analytics credentials not set"
           else
             echo "✅ Google Analytics configured"
           fi
-        env:
-          FIGMA_CLIENT_ID: ${{ secrets.FIGMA_CLIENT_ID }}
-          FIGMA_CLIENT_SECRET: ${{ secrets.FIGMA_CLIENT_SECRET }}
-          GOOGLE_ANALYTICS_ID: ${{ secrets.GOOGLE_ANALYTICS_ID }}
-          GOOGLE_ANALYTICS_API_SECRET: ${{ secrets.GOOGLE_ANALYTICS_API_SECRET }}
 
       - name: Build Windows app
         run: npm run make -- --platform=win32
         env:
-          # Inject environment variables at build time via Vite define
-          # These will be compiled into the binary as literal values
           FIGMA_CLIENT_ID: ${{ secrets.FIGMA_CLIENT_ID }}
           FIGMA_CLIENT_SECRET: ${{ secrets.FIGMA_CLIENT_SECRET }}
           GOOGLE_ANALYTICS_ID: ${{ secrets.GOOGLE_ANALYTICS_ID }}
@@ -268,14 +273,14 @@ jobs:
             ## TalkToFigma Desktop ${{ env.TAG_NAME }}
 
             ### 📦 Downloads
-            - **macOS x64 DMG**: Intel Macs - unsigned community build
-            - **macOS arm64 DMG**: Apple Silicon Macs - unsigned community build
-            - **macOS ZIP**: Alternative distribution format (both architectures)
+            - **macOS DMG (Universal)**: Works on both Intel and Apple Silicon Macs
+            - **macOS ZIP (Universal)**: Alternative distribution format
             - **Windows Squirrel**: Traditional EXE installer
 
-            ### ⚠️ Note
-            These are **unsigned community builds** for testing purposes.
-            For signed production builds with notarization, use the GitLab CI pipeline.
+            ### 🔒 Code Signing
+            - macOS builds are **code signed** with Grab Developer ID
+            - macOS builds are **notarized** by Apple
+            - Bundle ID: `com.grabtaxi.klever`
 
             ### 📋 Requirements
             - macOS 10.15 (Catalina) or later
@@ -285,9 +290,7 @@ jobs:
             ### 🚀 What's New
             See commit history and release notes below for details.
           files: |
-            artifacts/macos-x64-dmg/*.dmg
-            artifacts/macos-arm64-dmg/*.dmg
-            artifacts/macos-x64-zip/**/*.zip
-            artifacts/macos-arm64-zip/**/*.zip
+            artifacts/macos-universal-dmg/*.dmg
+            artifacts/macos-universal-zip/**/*.zip
             artifacts/windows-build/**/*.exe
             artifacts/windows-build/**/*.nupkg
