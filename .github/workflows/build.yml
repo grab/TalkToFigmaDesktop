@@ -66,6 +66,13 @@ jobs:
       - name: Install dependencies
         run: npm ci --prefer-offline
 
+      - name: Disable code signing for GitHub builds
+        run: |
+          echo "Disabling code signing in forge.config.ts for GitHub Actions..."
+          # Replace shouldSign logic to always return false for GitHub
+          sed -i '' 's/const shouldSign = process.env.SIGNING_IDENTITY !== '"'"''"'"';/const shouldSign = false; \/\/ Disabled for GitHub Actions/' forge.config.ts
+          echo "✅ Code signing disabled"
+
       - name: Verify environment variables
         run: |
           echo "Verifying environment variables..."
@@ -86,11 +93,10 @@ jobs:
           GOOGLE_ANALYTICS_ID: ${{ secrets.GOOGLE_ANALYTICS_ID }}
           GOOGLE_ANALYTICS_API_SECRET: ${{ secrets.GOOGLE_ANALYTICS_API_SECRET }}
 
-      - name: Build macOS app (unsigned)
-        run: npm run make -- --platform=darwin --arch=arm64
+      - name: Build macOS app
+        run: npm run make -- --platform=darwin --arch=universal
         env:
-          # Disable code signing by not providing credentials
-          SIGNING_IDENTITY: ''
+          # Code signing disabled via forge.config.ts modification
           # Inject environment variables at build time via Vite define
           # These will be compiled into the binary as literal values
           FIGMA_CLIENT_ID: ${{ secrets.FIGMA_CLIENT_ID }}
