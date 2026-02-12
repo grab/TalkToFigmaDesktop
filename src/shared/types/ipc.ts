@@ -115,6 +115,10 @@ export interface ElectronAPI {
     getStdioPath: () => Promise<string>;
     getStdioConfig: () => Promise<{ config: object; command: string; path: string }>;
   };
+
+  analytics: {
+    track: (eventType: string, properties?: Record<string, string | number | boolean>) => Promise<void>;
+  };
 }
 
 // MCP Configuration types

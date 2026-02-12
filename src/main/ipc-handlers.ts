@@ -10,6 +10,7 @@ import { createLogger } from './utils/logger';
 import * as storeUtils from './utils/store';
 import type { ServerState, FigmaAuthState } from '../shared/types';
 import { registerMcpConfigHandlers } from './handlers/mcp-config-handler';
+import { trackTutorialAction, trackThemeChange, trackPageView } from './analytics';
 
 const logger = createLogger('IPC');
 
@@ -156,6 +157,39 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
 
   // ===== MCP Configuration =====
   registerMcpConfigHandlers();
+
+  // ===== Analytics (Renderer → Main) =====
+  ipcMain.handle(IPC_CHANNELS.ANALYTICS_TRACK, async (
+    _event: IpcMainInvokeEvent,
+    eventType: string,
+    properties?: Record<string, string | number | boolean>
+  ) => {
+    logger.debug('IPC: analytics:track', { eventType });
+
+    switch (eventType) {
+      case 'tutorial':
+        if (properties?.action) {
+          trackTutorialAction(properties.action as 'shown' | 'completed' | 'skipped');
+        }
+        break;
+      case 'theme':
+        if (properties?.theme) {
+          trackThemeChange(properties.theme as 'light' | 'dark' | 'system');
+        }
+        break;
+      case 'pageView':
+        if (properties?.title && properties?.location) {
+          trackPageView(
+            String(properties.title),
+            String(properties.location),
+            properties.path ? String(properties.path) : undefined
+          );
+        }
+        break;
+      default:
+        logger.warn(`Unknown analytics event type: ${eventType}`);
+    }
+  });
 
   logger.info('IPC handlers registered successfully');
 }

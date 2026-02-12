@@ -70,6 +70,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setThemeState(newTheme)
     // Save to electron-store
     await window.electron?.settings?.set('app.theme', newTheme)
+    // Track theme change
+    await window.electron?.analytics?.track('theme', { theme: newTheme })
   }
 
   return (

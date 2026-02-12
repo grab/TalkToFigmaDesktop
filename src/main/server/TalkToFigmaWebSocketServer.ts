@@ -6,7 +6,7 @@
 
 import { createLogger } from '../utils/logger';
 import WebSocket, { WebSocketServer } from 'ws';
-import { trackMCPToolCall } from '../analytics';
+import { trackMCPToolCall, trackFigmaConnection } from '../analytics';
 import { isRestApiTool } from '../../shared/constants';
 
 const logger = createLogger('WebSocket');
@@ -47,6 +47,8 @@ export class TalkToFigmaWebSocketServer {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private toolMap: Map<string, any> = new Map();
   private servicesInitialized = false;
+  // Track pending requests for analytics (request ID -> command name)
+  private pendingRequests: Map<string, { command: string; timestamp: number }> = new Map();
 
   /**
    * Set callback to be called when client count changes
@@ -316,6 +318,11 @@ export class TalkToFigmaWebSocketServer {
 
     this.addLog('INFO', `Client (${clientType}) joined channel: ${channelName} (${channelClients.size} clients)`);
 
+    // Track Figma plugin connection
+    if (clientType === 'figma') {
+      trackFigmaConnection(true, channelName);
+    }
+
     // Notify status change (client count changed)
     this.notifyStatusChange();
 
@@ -355,11 +362,13 @@ export class TalkToFigmaWebSocketServer {
     const channelName = data.channel;
     const messageContent = data.message;
     const command = messageContent?.command;
+    const requestId = data.id || messageContent?.id;
 
-    // Track MCP tool call for analytics (if command exists)
-    if (command && typeof command === 'string') {
-      // Track tool call (assume success for now, errors tracked separately)
-      trackMCPToolCall(command, true);
+    // Store pending request for analytics tracking (when command is present)
+    if (command && typeof command === 'string' && requestId) {
+      this.pendingRequests.set(requestId, { command, timestamp: Date.now() });
+      // Clean up old pending requests (older than 5 minutes)
+      this.cleanupPendingRequests();
     }
 
     // Handle server-side commands (don't forward to Figma)
@@ -408,6 +417,23 @@ export class TalkToFigmaWebSocketServer {
     );
 
     if (isResponseMessage) {
+      // Track MCP tool call result based on response content
+      const responseId = messageContent.id || data.id;
+      if (responseId) {
+        const pendingRequest = this.pendingRequests.get(responseId);
+        if (pendingRequest) {
+          const hasError = messageContent.error !== undefined;
+          const resultType = this.getResultType(messageContent.result);
+          trackMCPToolCall(
+            pendingRequest.command,
+            !hasError,
+            hasError ? String(messageContent.error) : undefined,
+            hasError ? undefined : resultType
+          );
+          this.pendingRequests.delete(responseId);
+        }
+      }
+
       // Preserve original message structure for MCP server
       // MCP server expects: { type: 'message', message: { id, result/error }, channel, id }
       this.broadcastToChannel(channelName, {
@@ -438,6 +464,9 @@ export class TalkToFigmaWebSocketServer {
         ? 'No active channels found. Make sure Figma plugin is running and connected.'
         : `Active channels (${channels.size}): ${channelList}`;
 
+      // Track successful command
+      trackMCPToolCall('get_active_channels', true, undefined, 'string');
+
       this.sendToClient(ws, {
         type: 'message',
         id: data.id,
@@ -447,6 +476,9 @@ export class TalkToFigmaWebSocketServer {
         },
       });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      trackMCPToolCall('get_active_channels', false, errorMessage);
+
       this.sendToClient(ws, {
         type: 'message',
         id: data.id,
@@ -485,6 +517,9 @@ export class TalkToFigmaWebSocketServer {
         },
       };
 
+      // Track successful command
+      trackMCPToolCall('connection_diagnostics', true, undefined, 'object');
+
       this.sendToClient(ws, {
         type: 'message',
         id: data.id,
@@ -494,6 +529,9 @@ export class TalkToFigmaWebSocketServer {
         },
       });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      trackMCPToolCall('connection_diagnostics', false, errorMessage);
+
       this.sendToClient(ws, {
         type: 'message',
         id: data.id,
@@ -539,6 +577,11 @@ export class TalkToFigmaWebSocketServer {
     const clientType = clientInfo?.type || 'unknown';
 
     this.addLog('INFO', `Client (${clientType}) disconnected`);
+
+    // Track Figma plugin disconnection
+    if (clientType === 'figma') {
+      trackFigmaConnection(false);
+    }
 
     // Remove client from tracking
     this.clients.delete(ws);
@@ -653,6 +696,7 @@ export class TalkToFigmaWebSocketServer {
   private async handleRestApiTool(ws: WebSocket, data: any, command: string, params: Record<string, unknown>): Promise<void> {
     const tool = this.toolMap.get(command);
     if (!tool) {
+      trackMCPToolCall(command, false, 'Tool not found');
       this.sendToClient(ws, {
         type: 'message',
         id: data.id,
@@ -680,6 +724,9 @@ export class TalkToFigmaWebSocketServer {
         responseData = result;
       }
 
+      // Track successful REST API tool call
+      trackMCPToolCall(command, true, undefined, this.getResultType(responseData));
+
       this.sendToClient(ws, {
         type: 'message',
         id: data.id,
@@ -689,16 +736,57 @@ export class TalkToFigmaWebSocketServer {
         },
       });
     } catch (error) {
-      this.addLog('ERROR', `REST API tool ${command} failed: ${error instanceof Error ? error.message : String(error)}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.addLog('ERROR', `REST API tool ${command} failed: ${errorMessage}`);
+
+      // Track failed REST API tool call
+      trackMCPToolCall(command, false, errorMessage);
+
       this.sendToClient(ws, {
         type: 'message',
         id: data.id,
         message: {
           id: data.message?.id,
-          error: error instanceof Error ? error.message : String(error),
+          error: errorMessage,
         },
       });
     }
+  }
+
+  /**
+   * Clean up old pending requests (older than 5 minutes)
+   */
+  private cleanupPendingRequests(): void {
+    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+    for (const [id, request] of this.pendingRequests) {
+      if (request.timestamp < fiveMinutesAgo) {
+        this.pendingRequests.delete(id);
+      }
+    }
+  }
+
+  /**
+   * Get the result type for analytics tracking
+   */
+  private getResultType(result: unknown): string {
+    if (result === null || result === undefined) {
+      return 'null';
+    }
+    if (Array.isArray(result)) {
+      return 'array';
+    }
+    if (typeof result === 'object') {
+      // Check for common Figma node types
+      const obj = result as Record<string, unknown>;
+      if (obj.type && typeof obj.type === 'string') {
+        return obj.type;
+      }
+      if (obj.id && typeof obj.id === 'string') {
+        return 'node';
+      }
+      return 'object';
+    }
+    return typeof result;
   }
 }
 

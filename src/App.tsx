@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar, PageId } from '@/components/app-sidebar'
 import { Separator } from '@/components/ui/separator'
@@ -20,6 +20,23 @@ const pageLabels: Record<PageId, string> = {
   help: 'Help',
 }
 
+// Track page view when page changes
+function usePageViewTracking(currentPage: PageId) {
+  const prevPage = useRef<PageId | null>(null)
+
+  useEffect(() => {
+    // Only track if page actually changed (not on initial mount)
+    if (prevPage.current !== null && prevPage.current !== currentPage) {
+      window.electron?.analytics?.track('pageView', {
+        title: pageLabels[currentPage],
+        location: `talktofigma://${currentPage}`,
+        path: `/${currentPage}`,
+      })
+    }
+    prevPage.current = currentPage
+  }, [currentPage])
+}
+
 function App() {
   const [currentPage, setCurrentPage] = useState<PageId>('terminal')
   const [serverStatus, setServerStatus] = useState({
@@ -33,6 +50,9 @@ function App() {
   const [logs, setLogs] = useState<string[]>([])
   const [tutorialOpen, setTutorialOpen] = useState(false)
   const [copied, setCopied] = useState(false)
+
+  // Track page view changes
+  usePageViewTracking(currentPage)
 
   // Set initial welcome message
   useEffect(() => {

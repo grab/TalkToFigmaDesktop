@@ -37,6 +37,15 @@ interface TutorialStep {
 export function TutorialDialog({ open, onOpenChange, onComplete }: TutorialDialogProps) {
   const [currentStep, setCurrentStep] = useState(0)
   const confettiRef = useRef<ConfettiRef>(null)
+  const hasTrackedShown = useRef(false)
+
+  // Track tutorial shown when dialog opens
+  useEffect(() => {
+    if (open && !hasTrackedShown.current) {
+      hasTrackedShown.current = true
+      window.electron?.analytics?.track('tutorial', { action: 'shown' })
+    }
+  }, [open])
 
   // Trigger confetti when reaching Step 3
   useEffect(() => {
@@ -75,7 +84,7 @@ export function TutorialDialog({ open, onOpenChange, onComplete }: TutorialDialo
         <div className="space-y-4">
           <Button
             variant="outline"
-            onClick={() => window.electron?.shell?.openExternal?.('https://www.figma.com/community/plugin/1434378778965458683/talktofigma')}
+            onClick={() => window.electron?.shell?.openExternal?.('https://www.figma.com/community/plugin/1485687494525374295/talk-to-figma-mcp-plugin')}
           >
             <Figma className="mr-2" size={16} />
             Install Plugin
@@ -150,6 +159,8 @@ export function TutorialDialog({ open, onOpenChange, onComplete }: TutorialDialo
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1)
     } else {
+      // Track tutorial completed
+      window.electron?.analytics?.track('tutorial', { action: 'completed' })
       onComplete()
       onOpenChange(false)
     }
@@ -162,6 +173,8 @@ export function TutorialDialog({ open, onOpenChange, onComplete }: TutorialDialo
   }
 
   const handleSkip = () => {
+    // Track tutorial skipped
+    window.electron?.analytics?.track('tutorial', { action: 'skipped' })
     onComplete()
     onOpenChange(false)
   }

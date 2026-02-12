@@ -11,7 +11,7 @@ import { initialize } from '@aptabase/electron/main';
 import { registerIpcHandlers, setServerManager, setAuthManager, emitToRenderer } from './main/ipc-handlers';
 import { createLogger, setMainWindow } from './main/utils/logger';
 import { TalkToFigmaService, TalkToFigmaServerManager, TalkToFigmaTray } from './main/server';
-import { trackAppStart, trackAppQuit, trackUserEngagement, trackFirstOpenIfNeeded, trackAppException, APTABASE_APP_KEY } from './main/analytics';
+import { trackAppStart, trackAppQuit, trackUserEngagement, trackFirstOpenIfNeeded, trackAppException, trackServerActionFull, trackServerAction, trackOAuthAction, APTABASE_APP_KEY } from './main/analytics';
 import { FigmaOAuthService } from './main/figma/oauth/FigmaOAuthService';
 import { FigmaApiClient } from './main/figma/api/FigmaApiClient';
 import { IPC_CHANNELS, STORE_KEYS } from './shared/constants';
@@ -170,14 +170,20 @@ const initializeServers = (window: BrowserWindow) => {
     getStatus: () => ServerState;
   } = {
     start: async () => {
+      const startTime = Date.now();
       try {
         const result = await service!.startAll();
         if (!result.success) {
           throw new Error(result.error || 'Failed to start servers');
         }
+        // Track successful server start with startup time
+        const startupTimeMs = Date.now() - startTime;
+        trackServerActionFull('start', 'all', 3055, startupTimeMs);
         // Note: emitStatusChange is called via TrayUpdateCallback in service.startAll()
         // No need to call it explicitly here to avoid duplicate events
       } catch (error) {
+        // Track failed server start
+        trackServerAction('start', 'all');
         // Ensure UI reflects error state
         emitStatusChange();
         throw error;
@@ -189,6 +195,8 @@ const initializeServers = (window: BrowserWindow) => {
         if (!result.success) {
           throw new Error(result.error || 'Failed to stop servers');
         }
+        // Track successful server stop
+        trackServerAction('stop', 'all');
         // Note: emitStatusChange is called via TrayUpdateCallback in service.stopAll()
         // No need to call it explicitly here to avoid duplicate events
       } catch (error) {
@@ -198,6 +206,8 @@ const initializeServers = (window: BrowserWindow) => {
       }
     },
     restart: async () => {
+      // Track server restart
+      trackServerAction('restart', 'all');
       // Delegate to stop and start - they handle their own status updates
       await serverManagerAdapter.stop();
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -240,9 +250,14 @@ const initializeServers = (window: BrowserWindow) => {
   // Create auth manager adapter
   const authManagerAdapter = {
     startOAuth: async () => {
+      // Track OAuth start
+      trackOAuthAction('start');
       try {
         const oauthService = new FigmaOAuthService();
         await oauthService.authenticate();
+
+        // Track OAuth success
+        trackOAuthAction('success');
 
         // Tokens are already saved by authenticate()
         // Now fetch user info
@@ -274,11 +289,16 @@ const initializeServers = (window: BrowserWindow) => {
           }
         }
       } catch (error) {
+        // Track OAuth error
+        trackOAuthAction('error');
         logger.error('OAuth authentication failed:', error);
         throw error;
       }
     },
     logout: async () => {
+      // Track OAuth logout
+      trackOAuthAction('logout');
+
       // Clear tokens and user info using service method
       FigmaOAuthService.clearTokens();
 

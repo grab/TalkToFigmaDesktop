@@ -66,6 +66,9 @@ export const IPC_CHANNELS = {
   // Logging
   LOG_ENTRY: 'log:entry',
 
+  // Analytics (Renderer → Main)
+  ANALYTICS_TRACK: 'analytics:track',
+
   // MCP Configuration
   MCP_DETECT_CONFIG: 'mcp:detect-config',
   MCP_AUTO_CONFIGURE: 'mcp:auto-configure',

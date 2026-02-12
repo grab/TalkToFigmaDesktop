@@ -54,7 +54,7 @@ const electronAPI: ElectronAPI = {
   },
 
   window: {
-    resize: (width: number, height: number) => 
+    resize: (width: number, height: number) =>
       ipcRenderer.invoke(IPC_CHANNELS.WINDOW_RESIZE, width, height),
     hide: () => ipcRenderer.invoke(IPC_CHANNELS.WINDOW_HIDE),
     show: () => ipcRenderer.invoke(IPC_CHANNELS.WINDOW_SHOW),
@@ -79,6 +79,11 @@ const electronAPI: ElectronAPI = {
     restoreBackup: (clientId: string) => ipcRenderer.invoke(IPC_CHANNELS.MCP_RESTORE_BACKUP, clientId),
     getStdioPath: () => ipcRenderer.invoke(IPC_CHANNELS.MCP_GET_STDIO_PATH) as Promise<string>,
     getStdioConfig: () => ipcRenderer.invoke(IPC_CHANNELS.MCP_GET_STDIO_CONFIG) as Promise<{ config: object; command: string; path: string }>,
+  },
+
+  analytics: {
+    track: (eventType: string, properties?: Record<string, string | number | boolean>) =>
+      ipcRenderer.invoke(IPC_CHANNELS.ANALYTICS_TRACK, eventType, properties),
   },
 };
 
