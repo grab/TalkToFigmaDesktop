@@ -20,6 +20,7 @@ import {
   getSessionId,
   fetchPublicIp,
 } from './device-info';
+import { getDistributionChannel } from './distribution-channel';
 import { app } from 'electron';
 
 const logger = createLogger('GA4');
@@ -90,6 +91,7 @@ export async function trackGA4Event(
             session_id: sessionId,
             app_version: appVersion,
             engagement_time_msec: 1,
+            distribution_channel: getDistributionChannel(),
             ...parameters,
           },
         },
@@ -131,25 +133,16 @@ export const GA4Events = {
 
   // Server actions
   SERVER_ACTION: 'server_action',
-  SERVER_START: 'server_start',
-  SERVER_STOP: 'server_stop',
-  SERVER_RESTART: 'server_restart',
 
   // MCP tool calls
   MCP_TOOL_CALL: 'mcp_tool_call',
-  MCP_TOOL_SUCCESS: 'mcp_tool_success',
-  MCP_TOOL_ERROR: 'mcp_tool_error',
 
   // Figma plugin
   FIGMA_PLUGIN_CONNECTED: 'figma_plugin_connected',
   FIGMA_PLUGIN_DISCONNECTED: 'figma_plugin_disconnected',
-  FIGMA_CHANNEL_JOINED: 'figma_channel_joined',
 
   // OAuth
-  OAUTH_START: 'oauth_start',
-  OAUTH_SUCCESS: 'oauth_success',
-  OAUTH_ERROR: 'oauth_error',
-  OAUTH_LOGOUT: 'oauth_logout',
+  OAUTH_ACTION: 'oauth_action',
 
   // Tutorial
   TUTORIAL_SHOWN: 'tutorial_shown',
@@ -158,7 +151,6 @@ export const GA4Events = {
 
   // Settings
   THEME_CHANGED: 'theme_changed',
-  FILE_KEY_SET: 'file_key_set',
 
   // User actions
   USER_ACTION: 'user_action',

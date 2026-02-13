@@ -20,86 +20,6 @@ import { STORE_KEYS } from '@/shared/constants';
 const logger = createLogger('Analytics');
 
 /**
- * MCP Tool categories for analytics
- */
-const TOOL_CATEGORIES: Record<string, string> = {
-  // Document operations
-  get_document_info: 'document',
-  get_selection: 'document',
-  read_my_design: 'document',
-  get_node_info: 'document',
-  get_nodes_info: 'document',
-  scan_text_nodes: 'document',
-  scan_nodes_by_types: 'document',
-  get_styles: 'document',
-  get_local_components: 'document',
-  get_annotations: 'document',
-
-  // Creation operations
-  create_rectangle: 'creation',
-  create_frame: 'creation',
-  create_text: 'creation',
-  create_component_instance: 'creation',
-  clone_node: 'creation',
-
-  // Modification operations
-  set_fill_color: 'modification',
-  set_stroke_color: 'modification',
-  set_text_content: 'modification',
-  set_multiple_text_contents: 'modification',
-  set_corner_radius: 'modification',
-  set_annotation: 'modification',
-  set_multiple_annotations: 'modification',
-  move_node: 'modification',
-  resize_node: 'modification',
-  delete_node: 'modification',
-  delete_multiple_nodes: 'modification',
-
-  // Layout operations
-  set_layout_mode: 'layout',
-  set_padding: 'layout',
-  set_axis_align: 'layout',
-  set_layout_sizing: 'layout',
-  set_item_spacing: 'layout',
-
-  // Navigation operations
-  set_focus: 'navigation',
-  set_selections: 'navigation',
-  export_node_as_image: 'navigation',
-
-  // Channel operations
-  join_channel: 'channel',
-  get_active_channels: 'channel',
-  connection_diagnostics: 'channel',
-
-  // REST API operations
-  figma_get_comments: 'rest_api',
-  figma_post_reply: 'rest_api',
-  figma_post_reaction: 'rest_api',
-  figma_get_reactions: 'rest_api',
-  figma_delete_reaction: 'rest_api',
-  figma_get_config: 'rest_api',
-  figma_set_config: 'rest_api',
-  send_notification: 'rest_api',
-
-  // Instance operations
-  get_instance_overrides: 'instance',
-  set_instance_overrides: 'instance',
-
-  // Prototype operations
-  get_reactions: 'prototype',
-  set_default_connector: 'prototype',
-  create_connections: 'prototype',
-};
-
-/**
- * Get the category for an MCP tool
- */
-export function getToolCategory(toolName: string): string {
-  return TOOL_CATEGORIES[toolName] || 'unknown';
-}
-
-/**
  * Track event to both analytics services
  */
 export function trackEvent(
@@ -140,26 +60,41 @@ export function trackAppQuit(): void {
 }
 
 /**
- * Track server action
+ * Track server action (unified event)
+ * All server actions use 'server_action' event with action property for consistency
  */
 export function trackServerAction(
   action: 'start' | 'stop' | 'restart',
-  serverType: 'websocket' | 'mcp' | 'all'
+  serverType: 'websocket' | 'mcp' | 'all',
+  port?: number,
+  startupTimeMs?: number,
+  success = true,
+  errorMessage?: string
 ): void {
-  const eventName =
-    action === 'start'
-      ? AnalyticsEvents.SERVER_START
-      : action === 'stop'
-        ? AnalyticsEvents.SERVER_STOP
-        : AnalyticsEvents.SERVER_RESTART;
+  const params: Record<string, string | number | boolean> = {
+    action,
+    server_type: serverType,
+    success,
+  };
 
-  trackEvent(eventName, { server_type: serverType });
+  if (port !== undefined) {
+    params.port = port;
+  }
+
+  if (startupTimeMs !== undefined) {
+    params.startup_time_ms = startupTimeMs;
+  }
+
+  if (errorMessage) {
+    params.error_message = errorMessage;
+  }
+
+  trackEvent(AnalyticsEvents.SERVER_ACTION, params);
 }
 
 /**
  * Track MCP tool call (Kotlin-compatible)
  * Uses single event name with success parameter
- * Automatically adds tool category for analytics segmentation
  */
 export function trackMCPToolCall(
   toolName: string,
@@ -167,12 +102,9 @@ export function trackMCPToolCall(
   errorMessage?: string,
   resultType?: string
 ): void {
-  const category = getToolCategory(toolName);
-
   const params: Record<string, string | number | boolean> = {
     tool_name: toolName,
     success: success,
-    category: category,
   };
 
   if (errorMessage) {
@@ -200,17 +132,11 @@ export function trackFigmaConnection(connected: boolean, channelName?: string): 
 }
 
 /**
- * Track OAuth action
+ * Track OAuth action (unified event pattern)
+ * Uses single 'oauth_action' event with action property for consistency with server_action
  */
 export function trackOAuthAction(action: 'start' | 'success' | 'error' | 'logout'): void {
-  const eventMap = {
-    start: AnalyticsEvents.OAUTH_START,
-    success: AnalyticsEvents.OAUTH_SUCCESS,
-    error: AnalyticsEvents.OAUTH_ERROR,
-    logout: AnalyticsEvents.OAUTH_LOGOUT,
-  };
-
-  trackEvent(eventMap[action]);
+  trackEvent(AnalyticsEvents.OAUTH_ACTION, { action });
 }
 
 /**
@@ -285,31 +211,6 @@ export function trackFirstOpenIfNeeded(): void {
     store.set(STORE_KEYS.ANALYTICS_FIRST_OPEN_SENT, true);
     logger.debug('First open event sent and flag set');
   }
-}
-
-/**
- * Track server action with full parameters (Kotlin-compatible)
- */
-export function trackServerActionFull(
-  action: 'start' | 'stop' | 'restart',
-  serverType: 'websocket' | 'mcp' | 'all',
-  port?: number,
-  startupTimeMs?: number
-): void {
-  const params: Record<string, string | number> = {
-    action,
-    server_type: serverType,
-  };
-
-  if (port !== undefined) {
-    params.port = port;
-  }
-
-  if (startupTimeMs !== undefined) {
-    params.startup_time_ms = startupTimeMs;
-  }
-
-  trackEvent(AnalyticsEvents.SERVER_ACTION, params);
 }
 
 /**

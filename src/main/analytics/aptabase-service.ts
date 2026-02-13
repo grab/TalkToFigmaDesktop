@@ -13,6 +13,7 @@
 
 import { trackEvent } from '@aptabase/electron/main';
 import { createLogger } from '../utils/logger';
+import { getDistributionChannel } from './distribution-channel';
 
 const logger = createLogger('Aptabase');
 
@@ -23,13 +24,19 @@ export const APTABASE_APP_KEY = 'A-US-1810876928';
 
 /**
  * Track an event with Aptabase
+ * Automatically enriches all events with distribution_channel
  */
 export function trackAptabaseEvent(
   eventName: string,
   properties?: Record<string, string | number | boolean>
 ): void {
   try {
-    trackEvent(eventName, properties);
+    // Enrich all events with distribution_channel
+    const enrichedProperties = {
+      distribution_channel: getDistributionChannel(),
+      ...properties,
+    };
+    trackEvent(eventName, enrichedProperties);
   } catch (error) {
     logger.error(`Failed to track Aptabase event ${eventName}:`, error);
   }
@@ -44,25 +51,17 @@ export const AptabaseEvents = {
   APP_QUIT: 'app_quit',
 
   // Server actions
-  SERVER_START: 'server_start',
-  SERVER_STOP: 'server_stop',
-  SERVER_RESTART: 'server_restart',
+  SERVER_ACTION: 'server_action',
 
   // MCP tool calls
   MCP_TOOL_CALL: 'mcp_tool_call',
-  MCP_TOOL_SUCCESS: 'mcp_tool_success',
-  MCP_TOOL_ERROR: 'mcp_tool_error',
 
   // Figma plugin
   FIGMA_PLUGIN_CONNECTED: 'figma_plugin_connected',
   FIGMA_PLUGIN_DISCONNECTED: 'figma_plugin_disconnected',
-  FIGMA_CHANNEL_JOINED: 'figma_channel_joined',
 
   // OAuth
-  OAUTH_START: 'oauth_start',
-  OAUTH_SUCCESS: 'oauth_success',
-  OAUTH_ERROR: 'oauth_error',
-  OAUTH_LOGOUT: 'oauth_logout',
+  OAUTH_ACTION: 'oauth_action',
 
   // Tutorial
   TUTORIAL_SHOWN: 'tutorial_shown',
@@ -71,7 +70,6 @@ export const AptabaseEvents = {
 
   // Settings
   THEME_CHANGED: 'theme_changed',
-  FILE_KEY_SET: 'file_key_set',
 
   // Errors
   ERROR_OCCURRED: 'error_occurred',

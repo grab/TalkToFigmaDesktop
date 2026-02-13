@@ -119,7 +119,7 @@ Status indicators:
 
 ### 4. Install Figma Plugin
 
-Install the plugin: [**Cursor Talk to Figma MCP Plugin**](https://www.figma.com/community/plugin/1485687494525374295/cursor-talk-to-figma-mcp-plugin)
+Install the plugin: [**Talk to Figma MCP Plugin**](https://www.figma.com/community/plugin/1485687494525374295/talk-to-figma-mcp-plugin)
 
 > [!IMPORTANT]
 > When using TalkToFigma Desktop, you do **NOT** need to install bun.sh or run any terminal commands mentioned in the plugin description. The desktop app handles all server components.

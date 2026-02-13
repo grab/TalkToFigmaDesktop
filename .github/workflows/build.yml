@@ -138,6 +138,8 @@ jobs:
           FIGMA_CLIENT_SECRET: ${{ secrets.FIGMA_CLIENT_SECRET }}
           GOOGLE_ANALYTICS_ID: ${{ secrets.GOOGLE_ANALYTICS_ID }}
           GOOGLE_ANALYTICS_API_SECRET: ${{ secrets.GOOGLE_ANALYTICS_API_SECRET }}
+          # Analytics distribution channel
+          DISTRIBUTION_CHANNEL: ${{ secrets.DISTRIBUTION_CHANNEL }}
 
       - name: Clean up keychain
         if: always()
@@ -215,6 +217,8 @@ jobs:
           FIGMA_CLIENT_SECRET: ${{ secrets.FIGMA_CLIENT_SECRET }}
           GOOGLE_ANALYTICS_ID: ${{ secrets.GOOGLE_ANALYTICS_ID }}
           GOOGLE_ANALYTICS_API_SECRET: ${{ secrets.GOOGLE_ANALYTICS_API_SECRET }}
+          # Analytics distribution channel
+          DISTRIBUTION_CHANNEL: ${{ secrets.DISTRIBUTION_CHANNEL }}
 
       - name: List build artifacts
         shell: bash

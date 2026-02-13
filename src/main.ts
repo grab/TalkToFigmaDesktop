@@ -11,7 +11,7 @@ import { initialize } from '@aptabase/electron/main';
 import { registerIpcHandlers, setServerManager, setAuthManager, emitToRenderer } from './main/ipc-handlers';
 import { createLogger, setMainWindow } from './main/utils/logger';
 import { TalkToFigmaService, TalkToFigmaServerManager, TalkToFigmaTray } from './main/server';
-import { trackAppStart, trackAppQuit, trackUserEngagement, trackFirstOpenIfNeeded, trackAppException, trackServerActionFull, trackServerAction, trackOAuthAction, APTABASE_APP_KEY } from './main/analytics';
+import { trackAppStart, trackAppQuit, trackUserEngagement, trackFirstOpenIfNeeded, trackAppException, trackServerAction, trackOAuthAction, APTABASE_APP_KEY } from './main/analytics';
 import { FigmaOAuthService } from './main/figma/oauth/FigmaOAuthService';
 import { FigmaApiClient } from './main/figma/api/FigmaApiClient';
 import { IPC_CHANNELS, STORE_KEYS } from './shared/constants';
@@ -178,12 +178,13 @@ const initializeServers = (window: BrowserWindow) => {
         }
         // Track successful server start with startup time
         const startupTimeMs = Date.now() - startTime;
-        trackServerActionFull('start', 'all', 3055, startupTimeMs);
+        trackServerAction('start', 'all', 3055, startupTimeMs, true);
         // Note: emitStatusChange is called via TrayUpdateCallback in service.startAll()
         // No need to call it explicitly here to avoid duplicate events
       } catch (error) {
         // Track failed server start
-        trackServerAction('start', 'all');
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        trackServerAction('start', 'all', 3055, undefined, false, errorMessage);
         // Ensure UI reflects error state
         emitStatusChange();
         throw error;
@@ -196,19 +197,22 @@ const initializeServers = (window: BrowserWindow) => {
           throw new Error(result.error || 'Failed to stop servers');
         }
         // Track successful server stop
-        trackServerAction('stop', 'all');
+        trackServerAction('stop', 'all', 3055, undefined, true);
         // Note: emitStatusChange is called via TrayUpdateCallback in service.stopAll()
         // No need to call it explicitly here to avoid duplicate events
       } catch (error) {
+        // Track failed server stop
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        trackServerAction('stop', 'all', 3055, undefined, false, errorMessage);
         // Ensure UI reflects error state
         emitStatusChange();
         throw error;
       }
     },
     restart: async () => {
-      // Track server restart
-      trackServerAction('restart', 'all');
-      // Delegate to stop and start - they handle their own status updates
+      // Track server restart at the beginning
+      trackServerAction('restart', 'all', 3055, undefined, true);
+      // Delegate to stop and start - they handle their own tracking
       await serverManagerAdapter.stop();
       await new Promise(resolve => setTimeout(resolve, 1000));
       await serverManagerAdapter.start();

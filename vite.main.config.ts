@@ -27,6 +27,8 @@ export default defineConfig({
     '__FIGMA_CLIENT_SECRET__': JSON.stringify(process.env.FIGMA_CLIENT_SECRET || ''),
     '__GOOGLE_ANALYTICS_ID__': JSON.stringify(process.env.GOOGLE_ANALYTICS_ID || ''),
     '__GOOGLE_ANALYTICS_API_SECRET__': JSON.stringify(process.env.GOOGLE_ANALYTICS_API_SECRET || ''),
+    // Distribution channel for analytics (app_store, direct, or development)
+    '__DISTRIBUTION_CHANNEL__': JSON.stringify(process.env.DISTRIBUTION_CHANNEL || 'development'),
   },
   build: {
     rollupOptions: {

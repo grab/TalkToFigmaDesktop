@@ -15,6 +15,7 @@ import os from 'os';
 import { screen } from 'electron';
 import { v4 as uuidv4 } from 'uuid';
 import { createLogger } from '../utils/logger';
+import { getDistributionChannel } from './distribution-channel';
 
 const logger = createLogger('Device');
 
@@ -42,6 +43,7 @@ export interface UserProperties {
   os_name: { value: string };
   os_version: { value: string };
   screen_resolution: { value: string };
+  distribution_channel: { value: string };
 }
 
 // Session ID - generated once per app session
@@ -194,5 +196,6 @@ export function getUserProperties(appVersion: string): UserProperties {
     os_name: { value: mapOperatingSystem(platform) },
     os_version: { value: os.release() },
     screen_resolution: { value: resolution },
+    distribution_channel: { value: getDistributionChannel() },
   };
 }

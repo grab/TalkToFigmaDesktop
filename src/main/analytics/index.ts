@@ -13,3 +13,4 @@
 export * from './analytics-service';
 export * from './aptabase-service';
 export * from './ga4-service';
+export * from './distribution-channel';

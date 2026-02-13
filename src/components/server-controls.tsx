@@ -1,6 +1,6 @@
 "use client"
 
-import { Play, Square, Trash2 } from "lucide-react"
+import { Play, Square, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { RainbowButton } from "@/components/ui/rainbow-button"
@@ -82,7 +82,7 @@ export function ServerControls({
                         onClick={onRestart}
                         disabled={disabled || !wsRunning}
                     >
-                        <Trash2 className="size-4" />
+                        <RefreshCw className="size-4" />
                     </Button>
                 )}
             </div>
@@ -141,7 +141,7 @@ export function ServerControls({
                                     onClick={onRestart}
                                     disabled={disabled || !wsRunning}
                                 >
-                                    <Trash2 className="size-4" />
+                                    <RefreshCw className="size-4" />
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>Restart server</TooltipContent>
