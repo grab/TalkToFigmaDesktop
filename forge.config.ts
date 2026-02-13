@@ -41,6 +41,7 @@ const config: ForgeConfig = {
     // macOS: DMG (primary) and ZIP (backup/CI)
     new MakerDMG({
       format: 'ULFO',
+      icon: './public/icon.icns', // DMG volume icon (prevents Electron default icon confusion)
     }, ['darwin']),
     new MakerZIP({}, ['darwin']),
     // Windows: Squirrel for auto-update
