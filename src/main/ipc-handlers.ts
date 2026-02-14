@@ -11,6 +11,7 @@ import * as storeUtils from './utils/store';
 import type { ServerState, FigmaAuthState } from '../shared/types';
 import { registerMcpConfigHandlers } from './handlers/mcp-config-handler';
 import { trackTutorialAction, trackThemeChange, trackPageView } from './analytics';
+import { checkForUpdates } from './utils/updater';
 
 const logger = createLogger('IPC');
 
@@ -189,6 +190,12 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       default:
         logger.warn(`Unknown analytics event type: ${eventType}`);
     }
+  });
+
+  // ===== Updates =====
+  ipcMain.handle(IPC_CHANNELS.UPDATE_CHECK, async () => {
+    logger.info('IPC: update:check');
+    checkForUpdates(true);
   });
 
   logger.info('IPC handlers registered successfully');

@@ -20,6 +20,7 @@ export class TalkToFigmaService {
   private static instance: TalkToFigmaService | null = null;
   private manager: TalkToFigmaServerManager;
   private trayUpdateCallback: (() => void) | null = null;
+  private menuUpdateCallback: (() => void) | null = null;
 
   private constructor() {
     this.manager = TalkToFigmaServerManager.getInstance();
@@ -43,6 +44,14 @@ export class TalkToFigmaService {
   setTrayUpdateCallback(callback: () => void): void {
     this.trayUpdateCallback = callback;
     logger.info('[TalkToFigma Service] Tray update callback registered');
+  }
+
+  /**
+   * Register callback to update menu when status changes
+   */
+  setMenuUpdateCallback(callback: () => void): void {
+    this.menuUpdateCallback = callback;
+    logger.info('[TalkToFigma Service] Menu update callback registered');
   }
 
   /**
@@ -81,6 +90,11 @@ export class TalkToFigmaService {
     // Update tray icon and menu
     if (this.trayUpdateCallback) {
       this.trayUpdateCallback();
+    }
+
+    // Update application menu
+    if (this.menuUpdateCallback) {
+      this.menuUpdateCallback();
     }
   }
 

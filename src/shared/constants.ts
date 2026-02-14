@@ -76,6 +76,9 @@ export const IPC_CHANNELS = {
   MCP_RESTORE_BACKUP: 'mcp:restore-backup',
   MCP_GET_STDIO_PATH: 'mcp:get-stdio-path',
   MCP_GET_STDIO_CONFIG: 'mcp:get-stdio-config',
+
+  // Updates
+  UPDATE_CHECK: 'update:check',
 } as const;
 
 // Store keys for electron-store

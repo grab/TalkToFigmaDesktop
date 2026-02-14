@@ -85,6 +85,10 @@ const electronAPI: ElectronAPI = {
     track: (eventType: string, properties?: Record<string, string | number | boolean>) =>
       ipcRenderer.invoke(IPC_CHANNELS.ANALYTICS_TRACK, eventType, properties),
   },
+
+  update: {
+    check: () => ipcRenderer.invoke(IPC_CHANNELS.UPDATE_CHECK),
+  },
 };
 
 // Expose API to renderer

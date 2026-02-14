@@ -119,6 +119,10 @@ export interface ElectronAPI {
   analytics: {
     track: (eventType: string, properties?: Record<string, string | number | boolean>) => Promise<void>;
   };
+
+  update: {
+    check: () => Promise<void>;
+  };
 }
 
 // MCP Configuration types

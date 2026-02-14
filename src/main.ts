@@ -19,6 +19,7 @@ import type { ServerState } from './shared/types';
 import { getStore, saveFigmaUser, getFigmaUser } from './main/utils/store';
 import { installStdioServer } from './main/utils/stdio-installer';
 import { initializeUpdater } from './main/utils/updater';
+import { createMenu } from './main/menu';
 
 // Declare Vite plugin globals
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
@@ -102,6 +103,9 @@ const createWindow = () => {
   // Set mainWindow reference for logger to emit logs
   setMainWindow(mainWindow);
 
+  // Create application menu
+  createMenu(mainWindow);
+
   logger.info('Main window created successfully');
 };
 
@@ -160,6 +164,13 @@ const initializeServers = (window: BrowserWindow) => {
   // This is the single source of truth for status updates
   service.setTrayUpdateCallback(() => {
     emitStatusChange();
+  });
+
+  // Register callback to update menu when server status changes
+  service.setMenuUpdateCallback(() => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      createMenu(mainWindow);
+    }
   });
 
   // Create adapter for IPC handlers to use the new service
