@@ -5,13 +5,13 @@
  */
 
 import { autoUpdater, BrowserWindow, dialog, app } from 'electron';
+import updateElectronApp from 'update-electron-app';
 import log from 'electron-log';
 
 // Configure logging
 log.transports.file.level = 'info';
 
 let isManualCheck = false;
-const UPDATE_CHECK_INTERVAL = 10 * 60 * 1000; // 10 minutes
 
 // Track updater state to prevent calling checkForUpdates while already in progress
 type UpdaterState = 'idle' | 'checking' | 'downloading' | 'downloaded';
@@ -19,7 +19,8 @@ let updaterState: UpdaterState = 'idle';
 
 /**
  * Initialize auto-updater for GitHub Releases
- * Supports macOS (Squirrel.Mac) and Windows (Squirrel.Windows)
+ * Uses update-electron-app for automatic updates from GitHub Releases
+ * via update.electronjs.org proxy service
  */
 export function initializeUpdater() {
   // Exit early on unsupported platforms
@@ -34,25 +35,23 @@ export function initializeUpdater() {
     return;
   }
 
-  log.info('Initializing Auto Updater with manual configuration...');
+  log.info('Initializing auto-updater with update-electron-app...');
+  log.info('Current version:', app.getVersion());
+  log.info('Repository: grab/TalkToFigmaDesktop');
 
-  // Construct feed URL for update.electronjs.org
-  // For macOS universal builds, always use 'darwin-universal' regardless of actual arch
-  const platform = process.platform === 'darwin' ? 'darwin-universal' : `${process.platform}-${process.arch}`;
-  const feedURL = `https://update.electronjs.org/grab/TalkToFigmaDesktop/${platform}/${app.getVersion()}`;
-  const userAgent = `update-electron-app/manual (${process.platform}: ${process.arch})`;
-
-  log.info('feedURL:', feedURL);
-  log.info('requestHeaders:', { 'User-Agent': userAgent });
-
-  // Set feed URL
-  autoUpdater.setFeedURL({
-    url: feedURL,
-    headers: { 'User-Agent': userAgent },
-    serverType: 'default',
+  // Initialize update-electron-app
+  // This automatically:
+  // - Detects repository from package.json
+  // - Constructs feed URL for update.electronjs.org
+  // - Checks for updates every 10 minutes
+  // - Handles download and installation
+  updateElectronApp({
+    updateInterval: '10 minutes',
+    logger: log,
+    notifyUser: true,
   });
 
-  // Add event listeners
+  // Add additional event listeners for state tracking
   autoUpdater.on('error', (err) => {
     log.error('Auto-updater error:', err);
     updaterState = 'idle';
@@ -121,15 +120,7 @@ export function initializeUpdater() {
     }
   });
 
-  // Check for updates on startup
-  autoUpdater.checkForUpdates();
-
-  // Check for updates every 10 minutes (only if idle)
-  setInterval(() => {
-    if (updaterState === 'idle') {
-      autoUpdater.checkForUpdates();
-    }
-  }, UPDATE_CHECK_INTERVAL);
+  log.info('✅ Auto-updater initialized successfully');
 }
 
 /**
