@@ -207,6 +207,7 @@ export class ServerManager {
       mcp: {
         status: this.mcpServer ? 'running' : 'stopped',
         port: 3056,
+        transport: 'stdio', // Using stdio transport (SSE deprecated)
       },
       operationInProgress: this.operationInProgress,
       lastError: this.lastError,

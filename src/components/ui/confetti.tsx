@@ -14,10 +14,9 @@ import React, {
 } from "react";
 
 import type {
-  CommonConfettiOptions,
-  ConfettiOptions,
   CreateTypes,
   GlobalOptions,
+  Options as ConfettiOptions,
 } from "canvas-confetti";
 import confetti from "canvas-confetti";
 
@@ -108,8 +107,7 @@ const Confetti = forwardRef<ConfettiRef, ConfettiProps>(
 Confetti.displayName = "Confetti";
 
 interface ConfettiButtonProps extends ButtonProps {
-  options?: ConfettiOptions &
-    CommonConfettiOptions & { canvas?: HTMLCanvasElement };
+  options?: ConfettiOptions & { canvas?: HTMLCanvasElement };
   children?: React.ReactNode;
 }
 

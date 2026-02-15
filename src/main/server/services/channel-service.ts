@@ -37,9 +37,10 @@ export class ChannelService extends BaseFigmaService {
       },
       handler: async () => {
         try {
-          const channels = this.webSocketServer?.getActiveChannels() ?? new Set<string>()
+          const channelsArray = this.webSocketServer?.getActiveChannels() ?? []
+          const channels = new Set(channelsArray)
           const channelList = Array.from(channels).sort().join(', ')
-          
+
           const message = channels.size === 0
             ? 'No active channels found. Make sure Figma plugin is running and connected.'
             : `Active channels (${channels.size}): ${channelList}`
@@ -66,7 +67,8 @@ export class ChannelService extends BaseFigmaService {
       },
       handler: async () => {
         try {
-          const channels = this.webSocketServer?.getActiveChannels() ?? new Set<string>()
+          const channelsArray = this.webSocketServer?.getActiveChannels() ?? []
+          const channels = new Set(channelsArray)
           const wsStatus = this.webSocketServer ? 'running' : 'not initialized'
 
           const diagnostics = {

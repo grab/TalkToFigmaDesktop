@@ -5,6 +5,7 @@
  */
 
 import winston from 'winston';
+import Transport from 'winston-transport';
 import path from 'node:path';
 import { app, BrowserWindow } from 'electron';
 import fs from 'node:fs';
@@ -64,8 +65,8 @@ export function setMainWindow(window: BrowserWindow | null): void {
 }
 
 // Custom transport to send logs to renderer
-class IPCTransport extends winston.Transport {
-  constructor(opts?: winston.TransportStreamOptions) {
+class IPCTransport extends Transport {
+  constructor(opts?: Transport.TransportStreamOptions) {
     super(opts);
   }
 

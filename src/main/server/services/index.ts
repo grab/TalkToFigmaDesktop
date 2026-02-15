@@ -113,3 +113,8 @@ export function registerAllTools(server: Server): void {
  * Export services for external access
  */
 export { channelService, documentService, creationService, restApiService }
+
+/**
+ * Export types
+ */
+export type { ToolDefinition, FigmaCommandSender } from './base-figma-service'

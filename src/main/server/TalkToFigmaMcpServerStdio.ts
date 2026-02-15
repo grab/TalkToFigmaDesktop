@@ -14,12 +14,6 @@ import {
   InitializeRequestSchema,
   InitializedNotificationSchema
 } from '@modelcontextprotocol/sdk/types.js';
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
-
-// ESM-compatible __dirname
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 // Simple logger for stdio server
 const logger = {

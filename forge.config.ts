@@ -2,6 +2,8 @@ import type { ForgeConfig } from '@electron-forge/shared-types';
 import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { MakerZIP } from '@electron-forge/maker-zip';
 import { MakerDMG } from '@electron-forge/maker-dmg';
+import { MakerPKG } from '@electron-forge/maker-pkg';
+import { MakerMSIX } from '@electron-forge/maker-msix';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
@@ -10,6 +12,11 @@ import dotenv from 'dotenv';
 
 // Load environment variables from .env file (local development only)
 dotenv.config();
+
+// Check if building for Mac App Store
+const isMAS = process.env.PLATFORM === 'mas';
+// Check if building for Microsoft Store
+const isMSStore = process.env.PLATFORM === 'msstore';
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -22,13 +29,28 @@ const config: ForgeConfig = {
       './public',
     ],
     // Code signing configuration (uses .env locally, CI environment variables in GitLab)
-    osxSign: {
+    osxSign: (isMAS ? {
+      // Mac App Store signing
+      identity: process.env.SIGNING_IDENTITY_APPSTORE || 'Apple Distribution',
+      hardenedRuntime: false, // MAS doesn't use hardened runtime
+      entitlements: 'entitlements.mas.plist',
+      'entitlements-inherit': 'entitlements.mas.plist',
+      provisioningProfile: process.env.PROVISIONING_PROFILE, // Optional: only if using provisioning profile
+      optionsForFile: (filePath: string) => {
+        // Use child entitlements for helper processes (Electron Helper apps)
+        return {
+          hardenedRuntime: false,
+          entitlements: filePath.includes('Frameworks/') ? 'entitlements.child.plist' : 'entitlements.mas.plist',
+        };
+      },
+    } : {
+      // Regular distribution signing (Developer ID)
       identity: process.env.SIGNING_IDENTITY || 'Developer ID Application: GRABTAXI HOLDINGS PTE. LTD. (VU3G7T53K5)',
       hardenedRuntime: true,
       'gatekeeper-assess': false,
       entitlements: 'entitlements.plist',
       'entitlements-inherit': 'entitlements.plist',
-    },
+    }) as any,
     // Notarization configuration
     osxNotarize: {
       appleId: process.env.APPLE_ID || '',
@@ -38,16 +60,28 @@ const config: ForgeConfig = {
   },
   rebuildConfig: {},
   makers: [
-    // macOS: DMG (primary) and ZIP (backup/CI)
+    // macOS: DMG (primary) and ZIP (backup/CI) for Developer ID distribution
     new MakerDMG({
       format: 'ULFO',
       icon: './public/icon.icns', // DMG volume icon (prevents Electron default icon confusion)
     }, ['darwin']),
     new MakerZIP({}, ['darwin']),
-    // Windows: Squirrel for auto-update
+    // macOS: PKG for Mac App Store distribution
+    new MakerPKG({
+      identity: process.env.INSTALLER_IDENTITY || '3rd Party Mac Developer Installer',
+    }, ['mas']),
+    // Windows: Squirrel for traditional distribution with auto-update
     new MakerSquirrel({
       // Squirrel for traditional installer
     }, ['win32']),
+    // Windows: MSIX for Microsoft Store distribution (no signing required for store submission)
+    new MakerMSIX({
+      manifestVariables: {
+        publisher: process.env.MSIX_PUBLISHER || 'CN=GRABTAXI HOLDINGS PTE. LTD.',
+        publisherDisplayName: process.env.MSIX_PUBLISHER_DISPLAY_NAME || 'GRABTAXI HOLDINGS PTE. LTD.',
+        packageIdentity: process.env.MSIX_IDENTITY_NAME || 'com.grabtaxi.klever',
+      },
+    }),
   ],
   plugins: [
     new VitePlugin({

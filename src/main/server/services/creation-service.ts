@@ -46,7 +46,7 @@ export class CreationService extends BaseFigmaService {
           width: this.safeNumber(args.width),
           height: this.safeNumber(args.height),
           name: this.safeString(args.name, 'Rectangle'),
-          ...(args.parentId && { parentId: this.safeString(args.parentId) })
+          ...(args.parentId ? { parentId: this.safeString(args.parentId) } : {})
         }
         return this.executeFigmaCommand('create_rectangle', params, 'creating rectangle')
       }
