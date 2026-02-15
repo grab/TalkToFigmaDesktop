@@ -480,6 +480,27 @@ export const allTools: ToolDefinition[] = [  {
     }
   },
   {
+    "name": "rename_node",
+    "description": "Rename a node in Figma. Works with any node type (frame, rectangle, text, component, etc.)",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "description": "The ID of the node to rename",
+          "type": "string"
+        },
+        "name": {
+          "description": "New name for the node",
+          "type": "string"
+        }
+      },
+      "required": [
+        "nodeId",
+        "name"
+      ]
+    }
+  },
+  {
     "name": "delete_node",
     "description": "Delete a node from Figma",
     "inputSchema": {
