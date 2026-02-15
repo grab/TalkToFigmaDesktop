@@ -373,6 +373,7 @@ app.on('ready', async () => {
   }
 
   // Initialize auto-updater (production only)
+  // KleverDesktop style: direct call, no setImmediate wrapper needed
   initializeUpdater();
 
   createWindow();

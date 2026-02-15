@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import path from 'node:path';
+import { builtinModules } from 'node:module';
 
 // Load .env file at build time (for npm run make)
 // In development, variables may be pre-set by shell which take precedence
@@ -19,6 +20,11 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+    // Node.js environment settings (from KleverDesktop)
+    // Some libraries that can run in both Web and Node.js environments require this
+    browserField: false,
+    conditions: ['node'],
+    mainFields: ['module', 'jsnext:main', 'jsnext'],
   },
   define: {
     // Inject environment variables at build time for production builds
@@ -32,8 +38,15 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      // Mark optional ws dependencies as external
-      external: ['bufferutil', 'utf-8-validate'],
+      // Mark electron and all Node.js built-in modules as external
+      // These are available at runtime in Electron environment
+      external: [
+        'electron',
+        ...builtinModules,
+        // Optional native dependencies
+        'bufferutil',
+        'utf-8-validate',
+      ],
       output: {
         format: 'cjs',
         entryFileNames: '[name].cjs',

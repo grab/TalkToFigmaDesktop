@@ -5,13 +5,13 @@
  */
 
 import { autoUpdater, BrowserWindow, dialog, app } from 'electron';
-import updateElectronApp from 'update-electron-app';
 import log from 'electron-log';
 
 // Configure logging
 log.transports.file.level = 'info';
 
 let isManualCheck = false;
+const UPDATE_CHECK_INTERVAL = 10 * 60 * 1000; // 10 minutes
 
 // Track updater state to prevent calling checkForUpdates while already in progress
 type UpdaterState = 'idle' | 'checking' | 'downloading' | 'downloaded';
@@ -19,8 +19,8 @@ let updaterState: UpdaterState = 'idle';
 
 /**
  * Initialize auto-updater for GitHub Releases
- * Uses update-electron-app for automatic updates from GitHub Releases
- * via update.electronjs.org proxy service
+ * Uses native autoUpdater with update.electronjs.org proxy
+ * Based on KleverDesktop implementation (no update-electron-app package)
  */
 export function initializeUpdater() {
   // Exit early on unsupported platforms
@@ -35,23 +35,28 @@ export function initializeUpdater() {
     return;
   }
 
-  log.info('Initializing auto-updater with update-electron-app...');
+  log.info('Initializing Auto Updater with manual configuration...');
   log.info('Current version:', app.getVersion());
-  log.info('Repository: grab/TalkToFigmaDesktop');
 
-  // Initialize update-electron-app
-  // This automatically:
-  // - Detects repository from package.json
-  // - Constructs feed URL for update.electronjs.org
-  // - Checks for updates every 10 minutes
-  // - Handles download and installation
-  updateElectronApp({
-    updateInterval: '10 minutes',
-    logger: log,
-    notifyUser: true,
+  // Construct feed URL for update.electronjs.org
+  // For macOS universal builds, use 'darwin-universal'
+  const platform = process.platform === 'darwin'
+    ? `darwin-${process.arch}`
+    : `${process.platform}-${process.arch}`;
+  const feedURL = `https://update.electronjs.org/grab/TalkToFigmaDesktop/${platform}/${app.getVersion()}`;
+  const userAgent = `TalkToFigma-Desktop/${app.getVersion()} (${process.platform}: ${process.arch})`;
+
+  log.info('feedURL:', feedURL);
+  log.info('requestHeaders:', { 'User-Agent': userAgent });
+
+  // Set feed URL
+  autoUpdater.setFeedURL({
+    url: feedURL,
+    headers: { 'User-Agent': userAgent },
+    serverType: 'default',
   });
 
-  // Add additional event listeners for state tracking
+  // Add event listeners
   autoUpdater.on('error', (err) => {
     log.error('Auto-updater error:', err);
     updaterState = 'idle';
@@ -120,6 +125,16 @@ export function initializeUpdater() {
     }
   });
 
+  // Check for updates on startup
+  autoUpdater.checkForUpdates();
+
+  // Check for updates periodically (only if idle)
+  setInterval(() => {
+    if (updaterState === 'idle') {
+      autoUpdater.checkForUpdates();
+    }
+  }, UPDATE_CHECK_INTERVAL);
+
   log.info('✅ Auto-updater initialized successfully');
 }
 
@@ -129,19 +144,19 @@ export function initializeUpdater() {
  */
 export function checkForUpdates(manual = false) {
   isManualCheck = manual;
-  
+
   if (!app.isPackaged) {
-      log.info('Skipping update check in dev mode (not supported by native autoUpdater without signing)');
-      if (manual) {
-          dialog.showMessageBox({
-              type: 'info',
-              title: 'Development Mode',
-              message: 'Update checks are only available in the packaged application.'
-          });
-      }
-      return;
+    log.info('Skipping update check in dev mode (not supported by native autoUpdater without signing)');
+    if (manual) {
+      dialog.showMessageBox({
+        type: 'info',
+        title: 'Development Mode',
+        message: 'Update checks are only available in the packaged application.'
+      });
+    }
+    return;
   }
-  
+
   // Handle different updater states
   if (updaterState === 'downloading') {
     log.info('Update already downloading, skipping check');
@@ -155,7 +170,7 @@ export function checkForUpdates(manual = false) {
     }
     return;
   }
-  
+
   if (updaterState === 'downloaded') {
     log.info('Update already downloaded, prompting restart');
     if (manual) {
@@ -176,12 +191,12 @@ export function checkForUpdates(manual = false) {
     }
     return;
   }
-  
+
   if (updaterState === 'checking') {
     log.info('Already checking for updates, skipping');
     return;
   }
-  
+
   log.info(`Update check initiated (Manual: ${manual})`);
   autoUpdater.checkForUpdates();
 }

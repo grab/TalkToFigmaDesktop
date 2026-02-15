@@ -184,8 +184,8 @@ export class TalkToFigmaTray {
       const wsRunning = status.websocket.running;
       
       // Determine icon file name based on platform and theme
-      let iconFileName: string;
-      
+      let iconFileName: string = wsRunning ? 'trayTemplate_active.png' : 'trayTemplate.png'; // Default
+
       if (process.platform === 'darwin' || process.platform === 'linux') {
         // macOS & Linux: Use black template images (will auto-invert in dark mode)
         iconFileName = wsRunning ? 'trayTemplate_active.png' : 'trayTemplate.png';
@@ -201,34 +201,50 @@ export class TalkToFigmaTray {
           iconFileName = wsRunning ? 'trayTemplate_active.png' : 'trayTemplate.png';
         }
         logger.info(`[TalkToFigma Tray] Windows: Detected ${isDarkMode ? 'dark' : 'light'} mode, using ${iconFileName}`);
+      } else {
+        logger.warn(`[TalkToFigma Tray] Unknown platform: ${process.platform}, using default template icon`);
       }
 
       // Get app root path
       const appPath = app.getAppPath();
+      const isProduction = app.isPackaged;
 
-      // Build path arrays
-      const iconPaths = [
+      // Build path arrays - prioritize production paths when packaged
+      const iconPaths = isProduction ? [
+        // Production paths (packaged app) - try these first
+        path.join(process.resourcesPath, 'public', iconFileName),
+        // Fallback to relative paths
+        path.join(appPath, '..', 'public', iconFileName),
+        path.join(appPath, 'public', iconFileName),
+      ] : [
         // Development paths - try project root first
         path.join(__dirname, '..', '..', '..', 'public', iconFileName),
         path.join(appPath, '..', '..', 'public', iconFileName),
         path.join(appPath, 'public', iconFileName),
-        // Production paths (packaged app)
-        path.join(process.resourcesPath || appPath, 'public', iconFileName),
       ];
 
       // Fallback paths if primary icon not found
       const fallbackFileName = wsRunning ? 'tray_active.png' : 'tray.png';
-      const fallbackPaths = [
+      const fallbackPaths = isProduction ? [
+        path.join(process.resourcesPath, 'public', fallbackFileName),
+        path.join(appPath, '..', 'public', fallbackFileName),
+        path.join(appPath, 'public', fallbackFileName),
+      ] : [
         path.join(__dirname, '..', '..', '..', 'public', fallbackFileName),
         path.join(appPath, '..', '..', 'public', fallbackFileName),
         path.join(appPath, 'public', fallbackFileName),
-        path.join(process.resourcesPath || appPath, 'public', fallbackFileName),
       ];
 
       const allPaths = [...iconPaths, ...fallbackPaths];
 
+      logger.info(`[TalkToFigma Tray] Environment: ${isProduction ? 'Production' : 'Development'}`);
+      logger.info(`[TalkToFigma Tray] app.getAppPath(): ${appPath}`);
+      logger.info(`[TalkToFigma Tray] process.resourcesPath: ${process.resourcesPath || 'undefined'}`);
+      logger.info(`[TalkToFigma Tray] Attempting to load icon: ${iconFileName}`);
+
       // Try each path until we find a valid icon
       for (const iconPath of allPaths) {
+        logger.info(`[TalkToFigma Tray] Trying path: ${iconPath}`);
         const loadedIcon = nativeImage.createFromPath(iconPath);
         if (!loadedIcon.isEmpty()) {
           const isTemplate = iconPath.includes('Template');
