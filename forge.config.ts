@@ -15,8 +15,6 @@ dotenv.config();
 
 // Check if building for Mac App Store
 const isMAS = process.env.PLATFORM === 'mas';
-// Check if building for Microsoft Store
-const isMSStore = process.env.PLATFORM === 'msstore';
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -28,19 +26,26 @@ const config: ForgeConfig = {
     extraResource: [
       './public',
     ],
-    // Code signing configuration (uses .env locally, CI environment variables in GitLab)
+    // Code signing configuration (uses .env locally, CI environment variables in automation)
     osxSign: (isMAS ? {
       // Mac App Store signing
       identity: process.env.SIGNING_IDENTITY_APPSTORE || 'Apple Distribution',
       hardenedRuntime: false, // MAS doesn't use hardened runtime
+      timestamp: false, // Avoid TSA latency per-file during MAS signing
+      // Skip locale resource payloads from explicit signing to reduce signing overhead
+      ignore: (filePath: string) => /\/Resources\/[^/]+\.lproj\/locale\.pak$/.test(filePath.replace(/\\/g, '/')),
       entitlements: 'entitlements.mas.plist',
       'entitlements-inherit': 'entitlements.mas.plist',
       provisioningProfile: process.env.PROVISIONING_PROFILE, // Optional: only if using provisioning profile
       optionsForFile: (filePath: string) => {
-        // Use child entitlements for helper processes (Electron Helper apps)
+        // Apply child entitlements only to helper/framework binaries.
+        const normalizedPath = filePath.replace(/\\/g, '/');
+        const useChildEntitlements =
+          /\/Contents\/Frameworks\/[^/]+\.app\/Contents\/MacOS\//.test(normalizedPath) ||
+          /\/Contents\/Frameworks\/[^/]+\.framework\//.test(normalizedPath);
         return {
           hardenedRuntime: false,
-          entitlements: filePath.includes('Frameworks/') ? 'entitlements.child.plist' : 'entitlements.mas.plist',
+          entitlements: useChildEntitlements ? 'entitlements.child.plist' : 'entitlements.mas.plist',
         };
       },
     } : {
@@ -51,8 +56,8 @@ const config: ForgeConfig = {
       entitlements: 'entitlements.plist',
       'entitlements-inherit': 'entitlements.plist',
     }) as any,
-    // Notarization configuration
-    osxNotarize: {
+    // Notarization configuration (not used for MAS/App Store builds)
+    osxNotarize: isMAS ? undefined : {
       appleId: process.env.APPLE_ID || '',
       appleIdPassword: process.env.APPLE_PASSWORD || '',
       teamId: process.env.APPLE_TEAM_ID || 'VU3G7T53K5',
