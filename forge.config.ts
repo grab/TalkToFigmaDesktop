@@ -31,7 +31,7 @@ const config: ForgeConfig = {
       // Mac App Store signing
       identity: process.env.SIGNING_IDENTITY_APPSTORE || 'Apple Distribution',
       hardenedRuntime: false, // MAS doesn't use hardened runtime
-      timestamp: false, // Avoid TSA latency per-file during MAS signing
+      timestamp: 'none', // Disable TSA calls explicitly for @electron/osx-sign
       // Skip locale resource payloads from explicit signing to reduce signing overhead
       ignore: (filePath: string) => /\/Resources\/[^/]+\.lproj\/locale\.pak$/.test(filePath.replace(/\\/g, '/')),
       entitlements: 'entitlements.mas.plist',
@@ -45,6 +45,7 @@ const config: ForgeConfig = {
           /\/Contents\/Frameworks\/[^/]+\.framework\//.test(normalizedPath);
         return {
           hardenedRuntime: false,
+          timestamp: 'none',
           entitlements: useChildEntitlements ? 'entitlements.child.plist' : 'entitlements.mas.plist',
         };
       },
