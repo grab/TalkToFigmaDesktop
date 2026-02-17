@@ -15,13 +15,14 @@ dotenv.config();
 
 // Check if building for Mac App Store
 const isMAS = process.env.PLATFORM === 'mas';
+const windowsExecutableName = 'talktofigma-desktop';
 
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
     appBundleId: 'com.grabtaxi.klever',
     name: 'TalkToFigma Desktop',
-    executableName: 'talktofigma-desktop',
+    executableName: windowsExecutableName,
     icon: './public/icon', // Electron Forge will append .icns, .ico, .png automatically
     extraResource: [
       './public',
@@ -86,6 +87,7 @@ const config: ForgeConfig = {
         publisher: process.env.MSIX_PUBLISHER || 'CN=GRABTAXI HOLDINGS PTE. LTD.',
         publisherDisplayName: process.env.MSIX_PUBLISHER_DISPLAY_NAME || 'GRABTAXI HOLDINGS PTE. LTD.',
         packageIdentity: process.env.MSIX_IDENTITY_NAME || 'com.grabtaxi.klever',
+        appExecutable: `${windowsExecutableName}.exe`,
       },
     }),
   ],
