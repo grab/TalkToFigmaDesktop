@@ -2,11 +2,9 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!-- Mac App Store - Sandbox REQUIRED -->
-    <key>com.apple.security.app-sandbox</key>
-    <true/>
-
-    <!-- Inherit parent's entitlements -->
+    <!-- Child helpers must inherit sandbox from parent.
+         Do NOT declare app-sandbox again here, or helpers can crash with
+         forbidden-sandbox-reinit in MAS/TestFlight builds. -->
     <key>com.apple.security.inherit</key>
     <true/>
 </dict>
