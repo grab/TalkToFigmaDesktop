@@ -36,7 +36,9 @@ const config: ForgeConfig = {
       // Skip locale resource payloads from explicit signing to reduce signing overhead
       ignore: (filePath: string) => /\/Resources\/[^/]+\.lproj\/locale\.pak$/.test(filePath.replace(/\\/g, '/')),
       entitlements: 'entitlements.mas.plist',
-      'entitlements-inherit': 'entitlements.mas.plist',
+      // Child helpers (Renderer/GPU/Plugin) must inherit sandbox from parent.
+      // Using parent entitlements here can crash helper startup in libsecinit.
+      'entitlements-inherit': 'entitlements.child.plist',
       provisioningProfile: process.env.PROVISIONING_PROFILE, // Optional: only if using provisioning profile
       optionsForFile: (filePath: string) => {
         // Apply child entitlements only to helper/framework binaries.

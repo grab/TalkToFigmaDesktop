@@ -97,6 +97,40 @@ const createWindow = () => {
     );
   }
 
+  // Renderer lifecycle diagnostics (critical for packaged/TestFlight blank-screen debugging)
+  mainWindow.webContents.on('did-finish-load', () => {
+    logger.info('Renderer did-finish-load');
+  });
+
+  mainWindow.webContents.on(
+    'did-fail-load',
+    (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+      logger.error(
+        `Renderer did-fail-load: code=${errorCode}, description=${errorDescription}, url=${validatedURL}, mainFrame=${isMainFrame}`
+      );
+    }
+  );
+
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    logger.error(
+      `Renderer process gone: reason=${details.reason}, exitCode=${details.exitCode}`
+    );
+  });
+
+  mainWindow.webContents.on('preload-error', (_event, preloadPath, error) => {
+    logger.error(
+      `Preload error: path=${preloadPath}, message=${error?.message || 'unknown'}`
+    );
+  });
+
+  mainWindow.on('unresponsive', () => {
+    logger.warn('Main window became unresponsive');
+  });
+
+  mainWindow.on('responsive', () => {
+    logger.info('Main window responsive again');
+  });
+
   // Register IPC handlers
   registerIpcHandlers(mainWindow);
 
