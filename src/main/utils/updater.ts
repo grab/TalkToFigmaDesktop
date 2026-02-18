@@ -35,6 +35,13 @@ export function initializeUpdater() {
     return;
   }
 
+  // App Store / TestFlight builds must not use Electron autoUpdater.
+  // Updates are managed by the App Store infrastructure.
+  if (process.mas) {
+    log.info('Auto-updater disabled for MAS/TestFlight builds');
+    return;
+  }
+
   log.info('Initializing Auto Updater with manual configuration...');
   log.info('Current version:', app.getVersion());
 
@@ -152,6 +159,19 @@ export function checkForUpdates(manual = false) {
         type: 'info',
         title: 'Development Mode',
         message: 'Update checks are only available in the packaged application.'
+      });
+    }
+    return;
+  }
+
+  // MAS/TestFlight: update checks are handled by App Store.
+  if (process.mas) {
+    log.info('Skipping update check for MAS/TestFlight build');
+    if (manual) {
+      dialog.showMessageBox({
+        type: 'info',
+        title: 'Updates Managed by App Store',
+        message: 'This build receives updates through the App Store/TestFlight.'
       });
     }
     return;
