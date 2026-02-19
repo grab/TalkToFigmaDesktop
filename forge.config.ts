@@ -85,6 +85,8 @@ const config: ForgeConfig = {
       const identity = process.env.SIGNING_IDENTITY_APPSTORE || 'Apple Distribution';
       const childEntitlements = path.resolve('entitlements.child.plist');
       const mainEntitlements = path.resolve('entitlements.mas.plist');
+      const teamId = process.env.APPLE_TEAM_ID || '';
+      const bundleId = (_config as any).packagerConfig.appBundleId || 'com.grabtaxi.klever';
 
       // Find the .app bundle inside the output directory
       const items = fs.readdirSync(outputDir);
@@ -144,10 +146,33 @@ const config: ForgeConfig = {
       // Re-sign the main app to update the seal after helper modifications
       console.log('[postPackage] Re-signing main app to update seal...');
       try {
+        // Create enhanced entitlements with application identifier for TestFlight
+        const mainEntitlementsContent = fs.readFileSync(mainEntitlements, 'utf8');
+        const enhancedEntitlements = mainEntitlementsContent.replace(
+          '</dict>',
+          `    <!-- Required for TestFlight distribution -->
+    <key>com.apple.application-identifier</key>
+    <string>${teamId}.${bundleId}</string>
+    <key>com.apple.developer.team-identifier</key>
+    <string>${teamId}</string>
+    <key>com.apple.security.application-groups</key>
+    <array>
+        <string>${teamId}.${bundleId}</string>
+    </array>
+</dict>`
+        );
+
+        const tempEntitlements = path.join(outputDir, 'temp-entitlements.plist');
+        fs.writeFileSync(tempEntitlements, enhancedEntitlements);
+
         execSync(
-          `codesign --force --sign "${identity}" --entitlements "${mainEntitlements}" --timestamp=none "${appPath}"`,
+          `codesign --force --sign "${identity}" --entitlements "${tempEntitlements}" --timestamp=none "${appPath}"`,
           { stdio: 'inherit' }
         );
+
+        // Clean up temp file
+        fs.unlinkSync(tempEntitlements);
+
         console.log('[postPackage] ✅ Successfully re-signed main app');
       } catch (error) {
         console.error('[postPackage] ❌ Failed to re-sign main app:', error);
