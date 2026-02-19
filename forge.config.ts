@@ -81,10 +81,25 @@ const config: ForgeConfig = {
 
       console.log('[postPackage] Re-signing helper apps with correct entitlements for MAS...');
 
-      const appPath = options.outputPaths[0];
-      const frameworksPath = path.join(appPath, 'Contents', 'Frameworks');
+      const outputDir = options.outputPaths[0];
       const identity = process.env.SIGNING_IDENTITY_APPSTORE || 'Apple Distribution';
       const childEntitlements = path.resolve('entitlements.child.plist');
+      const mainEntitlements = path.resolve('entitlements.mas.plist');
+
+      // Find the .app bundle inside the output directory
+      const items = fs.readdirSync(outputDir);
+      const appBundle = items.find(item => item.endsWith('.app'));
+
+      if (!appBundle) {
+        console.log('[postPackage] No .app bundle found in output directory, skipping');
+        return;
+      }
+
+      const appPath = path.join(outputDir, appBundle);
+      const frameworksPath = path.join(appPath, 'Contents', 'Frameworks');
+
+      console.log(`[postPackage] App bundle: ${appPath}`);
+      console.log(`[postPackage] Frameworks path: ${frameworksPath}`);
 
       if (!fs.existsSync(frameworksPath)) {
         console.log('[postPackage] No Frameworks directory found, skipping helper re-signing');
@@ -92,8 +107,10 @@ const config: ForgeConfig = {
       }
 
       // Find all helper apps
-      const items = fs.readdirSync(frameworksPath);
-      const helperApps = items.filter(item => item.endsWith('.app'));
+      const frameworkItems = fs.readdirSync(frameworksPath);
+      const helperApps = frameworkItems.filter(item => item.endsWith('.app'));
+
+      console.log(`[postPackage] Found ${helperApps.length} helper apps to re-sign`);
 
       for (const helperApp of helperApps) {
         const helperPath = path.join(frameworksPath, helperApp);
@@ -114,7 +131,6 @@ const config: ForgeConfig = {
 
       // Re-sign the main app to update the seal after helper modifications
       console.log('[postPackage] Re-signing main app to update seal...');
-      const mainEntitlements = path.resolve('entitlements.mas.plist');
       try {
         execSync(
           `codesign --force --sign "${identity}" --entitlements "${mainEntitlements}" --timestamp=none "${appPath}"`,
