@@ -123,6 +123,18 @@ const config: ForgeConfig = {
             { stdio: 'inherit' }
           );
           console.log(`[postPackage] ✅ Successfully re-signed: ${helperApp}`);
+
+          // Verify the entitlements were applied
+          try {
+            const verifyOutput = execSync(
+              `codesign -d --entitlements - "${helperPath}" 2>&1`,
+              { encoding: 'utf8' }
+            );
+            console.log(`[postPackage] Verifying entitlements for ${helperApp}:`);
+            console.log(verifyOutput);
+          } catch (verifyError) {
+            console.error(`[postPackage] ⚠️  Failed to verify entitlements for ${helperApp}:`, verifyError);
+          }
         } catch (error) {
           console.error(`[postPackage] ❌ Failed to re-sign ${helperApp}:`, error);
           throw error;
