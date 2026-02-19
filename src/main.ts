@@ -6,6 +6,7 @@
 
 import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
+import inspector from 'node:inspector';
 import started from 'electron-squirrel-startup';
 import { initialize } from '@aptabase/electron/main';
 import { registerIpcHandlers, setServerManager, setAuthManager, emitToRenderer } from './main/ipc-handlers';
@@ -455,6 +456,31 @@ app.on('before-quit', async () => {
     await service?.stopAll({ showNotification: false });
   } catch (error) {
     logger.error('Error stopping servers:', { error });
+  }
+
+  // Close all windows and their DevTools explicitly
+  // This helps prevent inspector socket hang on MAS builds
+  const windows = BrowserWindow.getAllWindows();
+  for (const window of windows) {
+    try {
+      if (window.webContents && !window.webContents.isDestroyed()) {
+        window.webContents.closeDevTools();
+      }
+      if (!window.isDestroyed()) {
+        window.close();
+      }
+    } catch (error) {
+      logger.error('Error closing window:', { error });
+    }
+  }
+
+  // Close Node.js inspector to prevent InspectorSocket::Shutdown hang
+  // This is especially important for MAS sandbox builds
+  try {
+    inspector.close();
+    logger.info('Inspector closed');
+  } catch {
+    // Inspector may not be active, ignore
   }
 
   // Destroy tray
