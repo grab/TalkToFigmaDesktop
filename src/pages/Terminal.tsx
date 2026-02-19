@@ -50,7 +50,7 @@ export function TerminalPage({ logs }: TerminalPageProps) {
         <div className="h-full w-full flex flex-col">
             <Terminal className="flex-1 w-full overflow-auto">
                 {logs.map((log, index) => (
-                    <div key={index} className="font-mono text-xs whitespace-pre-wrap">
+                    <div key={index} className="font-mono text-xs whitespace-pre-wrap break-all">
                         {renderLogLine(log)}
                     </div>
                 ))}
