@@ -9,6 +9,9 @@ import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import { PublisherGithub } from '@electron-forge/publisher-github';
 import dotenv from 'dotenv';
+import { execSync } from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // Load environment variables from .env file (local development only)
 dotenv.config();
@@ -68,6 +71,64 @@ const config: ForgeConfig = {
     },
   },
   rebuildConfig: {},
+  // Hooks for post-processing after packaging
+  hooks: {
+    postPackage: async (_config, options) => {
+      // Only run for MAS builds on macOS
+      if (!isMAS || options.platform !== 'mas') {
+        return;
+      }
+
+      console.log('[postPackage] Re-signing helper apps with correct entitlements for MAS...');
+
+      const appPath = options.outputPaths[0];
+      const frameworksPath = path.join(appPath, 'Contents', 'Frameworks');
+      const identity = process.env.SIGNING_IDENTITY_APPSTORE || 'Apple Distribution';
+      const childEntitlements = path.resolve('entitlements.child.plist');
+
+      if (!fs.existsSync(frameworksPath)) {
+        console.log('[postPackage] No Frameworks directory found, skipping helper re-signing');
+        return;
+      }
+
+      // Find all helper apps
+      const items = fs.readdirSync(frameworksPath);
+      const helperApps = items.filter(item => item.endsWith('.app'));
+
+      for (const helperApp of helperApps) {
+        const helperPath = path.join(frameworksPath, helperApp);
+        console.log(`[postPackage] Re-signing helper: ${helperApp}`);
+
+        try {
+          // Re-sign the helper app with child entitlements (inherit only)
+          execSync(
+            `codesign --force --sign "${identity}" --entitlements "${childEntitlements}" --timestamp=none "${helperPath}"`,
+            { stdio: 'inherit' }
+          );
+          console.log(`[postPackage] ✅ Successfully re-signed: ${helperApp}`);
+        } catch (error) {
+          console.error(`[postPackage] ❌ Failed to re-sign ${helperApp}:`, error);
+          throw error;
+        }
+      }
+
+      // Re-sign the main app to update the seal after helper modifications
+      console.log('[postPackage] Re-signing main app to update seal...');
+      const mainEntitlements = path.resolve('entitlements.mas.plist');
+      try {
+        execSync(
+          `codesign --force --sign "${identity}" --entitlements "${mainEntitlements}" --timestamp=none "${appPath}"`,
+          { stdio: 'inherit' }
+        );
+        console.log('[postPackage] ✅ Successfully re-signed main app');
+      } catch (error) {
+        console.error('[postPackage] ❌ Failed to re-sign main app:', error);
+        throw error;
+      }
+
+      console.log('[postPackage] Helper re-signing complete');
+    },
+  },
   makers: [
     // macOS: DMG (primary) and ZIP (backup/CI) for Developer ID distribution
     new MakerDMG({
