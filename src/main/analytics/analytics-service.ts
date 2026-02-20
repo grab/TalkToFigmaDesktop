@@ -100,7 +100,7 @@ export function trackMCPToolCall(
   toolName: string,
   success: boolean,
   errorMessage?: string,
-  resultType?: string
+  durationMs?: number
 ): void {
   const params: Record<string, string | number | boolean> = {
     tool_name: toolName,
@@ -111,8 +111,8 @@ export function trackMCPToolCall(
     params.error_message = errorMessage;
   }
 
-  if (resultType) {
-    params.result_type = resultType;
+  if (durationMs !== undefined) {
+    params.duration_ms = durationMs;
   }
 
   trackEvent(AnalyticsEvents.MCP_TOOL_CALL, params);

@@ -408,13 +408,12 @@ export class TalkToFigmaWebSocketServer {
 
     this.addLog('DEBUG', `Broadcasting message to channel: ${channelName}`);
 
-    // Check if this is a response message (has id in message)
+    // Check if this is a response message (has result or error, but no command)
     // If so, preserve the original structure for MCP server compatibility
-    const isResponseMessage = messageContent && (
-      messageContent.id !== undefined ||
-      messageContent.result !== undefined ||
-      messageContent.error !== undefined
-    );
+    // Note: requests also have messageContent.id, so we must exclude messages with command
+    const isResponseMessage = messageContent &&
+      !messageContent.command &&
+      (messageContent.result !== undefined || messageContent.error !== undefined);
 
     if (isResponseMessage) {
       // Track MCP tool call result based on response content
@@ -423,12 +422,12 @@ export class TalkToFigmaWebSocketServer {
         const pendingRequest = this.pendingRequests.get(responseId);
         if (pendingRequest) {
           const hasError = messageContent.error !== undefined;
-          const resultType = this.getResultType(messageContent.result);
+          const durationMs = Date.now() - pendingRequest.timestamp;
           trackMCPToolCall(
             pendingRequest.command,
             !hasError,
             hasError ? String(messageContent.error) : undefined,
-            hasError ? undefined : resultType
+            durationMs
           );
           this.pendingRequests.delete(responseId);
         }
@@ -465,7 +464,7 @@ export class TalkToFigmaWebSocketServer {
         : `Active channels (${channels.size}): ${channelList}`;
 
       // Track successful command
-      trackMCPToolCall('get_active_channels', true, undefined, 'string');
+      trackMCPToolCall('get_active_channels', true);
 
       this.sendToClient(ws, {
         type: 'message',
@@ -518,7 +517,7 @@ export class TalkToFigmaWebSocketServer {
       };
 
       // Track successful command
-      trackMCPToolCall('connection_diagnostics', true, undefined, 'object');
+      trackMCPToolCall('connection_diagnostics', true);
 
       this.sendToClient(ws, {
         type: 'message',
@@ -708,6 +707,7 @@ export class TalkToFigmaWebSocketServer {
       return;
     }
 
+    const startTime = Date.now();
     try {
       this.addLog('INFO', `Handling REST API tool locally: ${command}`);
       const result = await tool.handler(params || {});
@@ -725,7 +725,7 @@ export class TalkToFigmaWebSocketServer {
       }
 
       // Track successful REST API tool call
-      trackMCPToolCall(command, true, undefined, this.getResultType(responseData));
+      trackMCPToolCall(command, true, undefined, Date.now() - startTime);
 
       this.sendToClient(ws, {
         type: 'message',
@@ -740,7 +740,7 @@ export class TalkToFigmaWebSocketServer {
       this.addLog('ERROR', `REST API tool ${command} failed: ${errorMessage}`);
 
       // Track failed REST API tool call
-      trackMCPToolCall(command, false, errorMessage);
+      trackMCPToolCall(command, false, errorMessage, Date.now() - startTime);
 
       this.sendToClient(ws, {
         type: 'message',
@@ -765,28 +765,5 @@ export class TalkToFigmaWebSocketServer {
     }
   }
 
-  /**
-   * Get the result type for analytics tracking
-   */
-  private getResultType(result: unknown): string {
-    if (result === null || result === undefined) {
-      return 'null';
-    }
-    if (Array.isArray(result)) {
-      return 'array';
-    }
-    if (typeof result === 'object') {
-      // Check for common Figma node types
-      const obj = result as Record<string, unknown>;
-      if (obj.type && typeof obj.type === 'string') {
-        return obj.type;
-      }
-      if (obj.id && typeof obj.id === 'string') {
-        return 'node';
-      }
-      return 'object';
-    }
-    return typeof result;
-  }
 }
 

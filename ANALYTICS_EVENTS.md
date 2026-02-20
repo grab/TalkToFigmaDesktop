@@ -62,7 +62,7 @@ Triggered when an MCP tool is invoked.
 |----------|------|-------------|
 | tool_name | string | Name of the tool (e.g., `create_rectangle`) |
 | success | boolean | Whether the tool call succeeded |
-| result_type | string | (optional) Type of result returned |
+| duration_ms | number | (optional) Time in ms from request received to response returned |
 | error_message | string | (optional) Error description if failed |
 
 ---
