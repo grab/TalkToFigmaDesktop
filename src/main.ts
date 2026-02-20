@@ -9,10 +9,10 @@ import path from 'node:path';
 import inspector from 'node:inspector';
 import started from 'electron-squirrel-startup';
 import { initialize } from '@aptabase/electron/main';
-import { registerIpcHandlers, setServerManager, setAuthManager, emitToRenderer } from './main/ipc-handlers';
+import { registerIpcHandlers, setAuthManager, emitToRenderer } from './main/ipc-handlers';
 import { createLogger, setMainWindow } from './main/utils/logger';
 import { TalkToFigmaService, TalkToFigmaServerManager, TalkToFigmaTray } from './main/server';
-import { trackAppStart, trackAppQuit, trackUserEngagement, trackFirstOpenIfNeeded, trackAppException, trackServerAction, trackOAuthAction, APTABASE_APP_KEY } from './main/analytics';
+import { trackAppStart, trackAppQuit, trackUserEngagement, trackFirstOpenIfNeeded, trackAppException, trackOAuthAction, APTABASE_APP_KEY } from './main/analytics';
 import { FigmaOAuthService } from './main/figma/oauth/FigmaOAuthService';
 import { FigmaApiClient } from './main/figma/api/FigmaApiClient';
 import { IPC_CHANNELS, STORE_KEYS } from './shared/constants';
@@ -208,95 +208,6 @@ const initializeServers = (window: BrowserWindow) => {
       createMenu(mainWindow);
     }
   });
-
-  // Create adapter for IPC handlers to use the new service
-  const serverManagerAdapter: {
-    start: () => Promise<void>;
-    stop: () => Promise<void>;
-    restart: () => Promise<void>;
-    getStatus: () => ServerState;
-  } = {
-    start: async () => {
-      const startTime = Date.now();
-      try {
-        const result = await service!.startAll();
-        if (!result.success) {
-          throw new Error(result.error || 'Failed to start servers');
-        }
-        // Track successful server start with startup time
-        const startupTimeMs = Date.now() - startTime;
-        trackServerAction('start', 'all', 3055, startupTimeMs, true);
-        // Note: emitStatusChange is called via TrayUpdateCallback in service.startAll()
-        // No need to call it explicitly here to avoid duplicate events
-      } catch (error) {
-        // Track failed server start
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        trackServerAction('start', 'all', 3055, undefined, false, errorMessage);
-        // Ensure UI reflects error state
-        emitStatusChange();
-        throw error;
-      }
-    },
-    stop: async () => {
-      try {
-        const result = await service!.stopAll();
-        if (!result.success) {
-          throw new Error(result.error || 'Failed to stop servers');
-        }
-        // Track successful server stop
-        trackServerAction('stop', 'all', 3055, undefined, true);
-        // Note: emitStatusChange is called via TrayUpdateCallback in service.stopAll()
-        // No need to call it explicitly here to avoid duplicate events
-      } catch (error) {
-        // Track failed server stop
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        trackServerAction('stop', 'all', 3055, undefined, false, errorMessage);
-        // Ensure UI reflects error state
-        emitStatusChange();
-        throw error;
-      }
-    },
-    restart: async () => {
-      // Track server restart at the beginning
-      trackServerAction('restart', 'all', 3055, undefined, true);
-      // Delegate to stop and start - they handle their own tracking
-      await serverManagerAdapter.stop();
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      await serverManagerAdapter.start();
-    },
-    getStatus: () => {
-      const result = service!.getStatus();
-      if (result.success && result.status) {
-        // Convert FigmaServerState to ServerState format
-        const figmaState = result.status;
-        return {
-          websocket: {
-            status: figmaState.websocket.running ? 'running' : 'stopped',
-            port: figmaState.websocket.port,
-            connectedClients: figmaState.websocket.clientCount || 0,
-            mcpClientCount: figmaState.websocket.mcpClientCount,
-            figmaClientCount: figmaState.websocket.figmaClientCount,
-          },
-          mcp: {
-            status: 'running', // stdio mode is always available when app is running
-            transport: 'stdio',
-          },
-          operationInProgress: false,
-          lastError: null,
-        };
-      }
-      // Return default stopped state if getStatus fails
-      return {
-        websocket: { status: 'stopped', port: 3055, connectedClients: 0 },
-        mcp: { status: 'stopped', transport: 'stdio' },
-        operationInProgress: false,
-        lastError: result.error || null,
-      };
-    },
-  };
-
-  // Set the adapter for IPC handlers
-  setServerManager(serverManagerAdapter);
 
   // Create auth manager adapter
   const authManagerAdapter = {
