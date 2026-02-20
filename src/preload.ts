@@ -89,6 +89,10 @@ const electronAPI: ElectronAPI = {
   update: {
     check: () => ipcRenderer.invoke(IPC_CHANNELS.UPDATE_CHECK),
   },
+
+  sse: {
+    onClientDetected: createEventListener<Record<string, never>>(IPC_CHANNELS.SSE_CLIENT_DETECTED),
+  },
 };
 
 // Expose API to renderer

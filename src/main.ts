@@ -21,6 +21,7 @@ import { getStore, saveFigmaUser, getFigmaUser } from './main/utils/store';
 import { installStdioServer } from './main/utils/stdio-installer';
 import { initializeUpdater } from './main/utils/updater';
 import { createMenu } from './main/menu';
+import { SseDetectionServer } from './main/server/SseDetectionServer';
 
 // Declare Vite plugin globals
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
@@ -417,6 +418,17 @@ app.on('ready', async () => {
   if (mainWindow) {
     initializeServers(mainWindow);
     createTray();
+  }
+
+  // Start SSE detection server — listens on port 3056 for 60s to detect legacy clients
+  if (mainWindow) {
+    const sseDetection = new SseDetectionServer(() => {
+      emitToRenderer(mainWindow!, IPC_CHANNELS.SSE_CLIENT_DETECTED, {});
+      sseDetection.stop();
+    });
+    sseDetection.start().then(() => {
+      setTimeout(() => sseDetection.stop(), 60_000);
+    });
   }
 
   // Auto-start servers in development

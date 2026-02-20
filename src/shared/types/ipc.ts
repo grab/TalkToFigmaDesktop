@@ -123,6 +123,10 @@ export interface ElectronAPI {
   update: {
     check: () => Promise<void>;
   };
+
+  sse: {
+    onClientDetected: (callback: () => void) => () => void;
+  };
 }
 
 // MCP Configuration types

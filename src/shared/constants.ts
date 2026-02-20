@@ -79,6 +79,9 @@ export const IPC_CHANNELS = {
 
   // Updates
   UPDATE_CHECK: 'update:check',
+
+  // SSE migration detection
+  SSE_CLIENT_DETECTED: 'sse:client-detected',
 } as const;
 
 // Store keys for electron-store

@@ -4,6 +4,7 @@ import { AppSidebar, PageId } from '@/components/app-sidebar'
 import { Separator } from '@/components/ui/separator'
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb'
 import { TutorialDialog } from '@/components/TutorialDialog'
+import { SseMigrationDialog } from '@/components/SseMigrationDialog'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler'
 import { Button } from '@/components/ui/button'
@@ -49,6 +50,7 @@ function App() {
   const [figmaUser, setFigmaUser] = useState<{ name: string; email: string; avatar?: string } | null>(null)
   const [logs, setLogs] = useState<string[]>([])
   const [tutorialOpen, setTutorialOpen] = useState(false)
+  const [migrationDialogOpen, setMigrationDialogOpen] = useState(false)
   const [copied, setCopied] = useState(false)
 
   // Track page view changes
@@ -85,6 +87,14 @@ Ready to bridge Figma and AI tools via MCP
       }
     }
     checkFirstLaunch()
+  }, [])
+
+  // Listen for legacy SSE client detection
+  useEffect(() => {
+    const unsubscribe = window.electron?.sse?.onClientDetected(() => {
+      setMigrationDialogOpen(true)
+    })
+    return () => unsubscribe?.()
   }, [])
 
   const handleTutorialComplete = async () => {
@@ -264,7 +274,7 @@ Ready to bridge Figma and AI tools via MCP
       case 'terminal':
         return <TerminalPage logs={logs} />
       case 'settings':
-        return <SettingsPage />
+        return <SettingsPage onNavigateToSettings={() => setCurrentPage('settings')} />
       case 'help':
         return <HelpPage />
       default:
@@ -278,6 +288,14 @@ Ready to bridge Figma and AI tools via MCP
         open={tutorialOpen}
         onOpenChange={setTutorialOpen}
         onComplete={handleTutorialComplete}
+      />
+      <SseMigrationDialog
+        open={migrationDialogOpen}
+        onClose={() => setMigrationDialogOpen(false)}
+        onGoToSettings={() => {
+          setMigrationDialogOpen(false)
+          setCurrentPage('settings')
+        }}
       />
       <SidebarProvider>
         <AppSidebar
