@@ -63,7 +63,7 @@ export function McpClientItem({ client }: McpClientItemProps) {
 
   // Generate config with actual path
   const getConfigWithPath = () => {
-    if (client.id === 'cursor' || client.id === 'vscode') {
+    if (client.id === 'cursor' || client.id === 'vscode' || client.id === 'antigravity') {
       const config = {
         mcpServers: {
           TalkToFigmaDesktop: {
@@ -121,6 +121,15 @@ export function McpClientItem({ client }: McpClientItemProps) {
 
       {/* VS Code */}
       {client.id === 'vscode' && (
+        <>
+          <div className="space-y-3">
+            <ConfigCodeBlock config={getConfigWithPath()} />
+          </div>
+        </>
+      )}
+
+      {/* Antigravity */}
+      {client.id === 'antigravity' && (
         <>
           <div className="space-y-3">
             <ConfigCodeBlock config={getConfigWithPath()} />

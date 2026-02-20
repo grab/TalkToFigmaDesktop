@@ -93,6 +93,31 @@ export const MCP_CLIENTS: Record<string, McpClient> = {
     ]
   },
 
+  antigravity: {
+    id: 'antigravity',
+    displayName: 'Antigravity',
+    configPath: '~/Library/Application Support/Antigravity/mcp_config.json', // macOS
+    configFormat: 'json',
+    serverName: 'TalkToFigmaDesktop',
+    installMethod: 'manual',
+    description: 'Google Antigravity AI editor',
+    config: {
+      mcpServers: {
+        TalkToFigmaDesktop: {
+          command: 'node',
+          args: ['<STDIO_SERVER_PATH>']  // Replace with actual path to mcp-stdio-server.js
+        }
+      }
+    },
+    instructions: [
+      'Click "..." in the top right of the Antigravity side panel',
+      'Select "MCP Server" → "Manage MCP Servers"',
+      'Click "View raw config"',
+      'Copy the configuration JSON above (server path is pre-filled)',
+      'Paste into the config editor and save'
+    ]
+  },
+
   comingSoon: {
     id: 'coming-soon',
     displayName: 'Other Clients',
