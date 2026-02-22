@@ -31,5 +31,6 @@ export default defineConfig({
     // These will be replaced with literal values in the bundled code
     '__GOOGLE_ANALYTICS_ID__': JSON.stringify(process.env.GOOGLE_ANALYTICS_ID || ''),
     '__GOOGLE_ANALYTICS_API_SECRET__': JSON.stringify(process.env.GOOGLE_ANALYTICS_API_SECRET || ''),
+    '__APP_VERSION__': JSON.stringify(process.env.npm_package_version || ''),
   },
 });

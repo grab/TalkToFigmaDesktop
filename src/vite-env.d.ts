@@ -5,6 +5,7 @@ declare const __FIGMA_CLIENT_ID__: string;
 declare const __FIGMA_CLIENT_SECRET__: string;
 declare const __GOOGLE_ANALYTICS_ID__: string;
 declare const __GOOGLE_ANALYTICS_API_SECRET__: string;
+declare const __APP_VERSION__: string;
 
 declare module '*.png' {
   const value: string

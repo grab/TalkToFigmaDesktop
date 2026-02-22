@@ -66,7 +66,7 @@ function App() {
    \\_/\\__,_|_|_|\\_\\   \\_/\\___/   |_|   |_|\\__, |_| |_| |_|\\__,_|
                                            __/ |
                                           |___/`
-    const welcomeMessage = `TalkToFigma Desktop v2.0.0
+    const welcomeMessage = `TalkToFigma Desktop v${__APP_VERSION__}
 Ready to bridge Figma and AI tools via MCP
 → Start the server to see logs`
 
@@ -262,7 +262,7 @@ Ready to bridge Figma and AI tools via MCP
    \\_/\\__,_|_|_|\\_\\   \\_/\\___/   |_|   |_|\\__, |_| |_| |_|\\__,_|
                                            __/ |
                                           |___/`
-    const welcomeMessage = `TalkToFigma Desktop v2.0.0
+    const welcomeMessage = `TalkToFigma Desktop v${__APP_VERSION__}
 Ready to bridge Figma and AI tools via MCP
 → Start the server to see logs`
 
