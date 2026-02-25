@@ -12,10 +12,8 @@
     <key>com.apple.security.network.client</key>
     <true/>
 
-    <!-- File system access -->
+    <!-- File system access - user-initiated file open/save dialogs -->
     <key>com.apple.security.files.user-selected.read-write</key>
-    <true/>
-    <key>com.apple.security.files.downloads.read-write</key>
     <true/>
 </dict>
 </plist>
