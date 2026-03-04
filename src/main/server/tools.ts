@@ -3,7 +3,7 @@
  * Total 52 tools (40 from original + 12 additional)
  *
  * Auto-generated from: https://raw.githubusercontent.com/grab/cursor-talk-to-figma-mcp/refs/heads/main/src/talk_to_figma_mcp/server.ts
- * Generated at: 2026-03-04T12:20:39.521Z
+ * Generated at: 2026-03-04T12:27:49.629Z
  *
  * To regenerate: npm run generate:tools
  */
@@ -68,7 +68,9 @@ export const allTools: ToolDefinition[] = [  {
       "type": "object",
       "properties": {
         "nodeIds": {
-          "description": "Array of node IDs to get information about"
+          "description": "Array of node IDs to get information about",
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -475,7 +477,9 @@ export const allTools: ToolDefinition[] = [  {
       "type": "object",
       "properties": {
         "nodeIds": {
-          "description": "Array of node IDs to delete"
+          "description": "Array of node IDs to delete",
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -584,7 +588,10 @@ export const allTools: ToolDefinition[] = [  {
           "description": "The ID of the annotation category",
           "type": "string"
         },
-        "properties": {},
+        "properties": {
+          "type": "object",
+          "additionalProperties": true
+        },
         "type": {
           "type": "string"
         }
@@ -603,7 +610,10 @@ export const allTools: ToolDefinition[] = [  {
     "inputSchema": {
       "type": "object",
       "properties": {
-        "annotations": {},
+        "annotations": {
+          "type": "object",
+          "additionalProperties": true
+        },
         "nodeId": {
           "description": "The ID of the node to annotate",
           "type": "string"
@@ -620,7 +630,10 @@ export const allTools: ToolDefinition[] = [  {
           "description": "The ID of the annotation to update (if updating existing annotation)",
           "type": "string"
         },
-        "properties": {},
+        "properties": {
+          "type": "object",
+          "additionalProperties": true
+        },
         "type": {
           "description": "Array of annotations to apply",
           "type": "string"
@@ -686,7 +699,9 @@ export const allTools: ToolDefinition[] = [  {
           "type": "string"
         },
         "targetNodeIds": {
-          "description": "Array of target instance IDs. Currently selected instances will be used."
+          "description": "Array of target instance IDs. Currently selected instances will be used.",
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -743,7 +758,10 @@ export const allTools: ToolDefinition[] = [  {
           "description": "ID of the node to scan",
           "type": "string"
         },
-        "types": {}
+        "types": {
+          "type": "object",
+          "additionalProperties": true
+        }
       },
       "required": [
         "nodeId",
@@ -902,7 +920,9 @@ export const allTools: ToolDefinition[] = [  {
       "type": "object",
       "properties": {
         "nodeIds": {
-          "description": "Array of node IDs to get reactions from"
+          "description": "Array of node IDs to get reactions from",
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -930,7 +950,10 @@ export const allTools: ToolDefinition[] = [  {
     "inputSchema": {
       "type": "object",
       "properties": {
-        "connections": {},
+        "connections": {
+          "type": "object",
+          "additionalProperties": true
+        },
         "startNodeId": {
           "description": "ID of the starting node",
           "type": "string"
@@ -974,7 +997,9 @@ export const allTools: ToolDefinition[] = [  {
       "type": "object",
       "properties": {
         "nodeIds": {
-          "description": "Array of node IDs to select"
+          "description": "Array of node IDs to select",
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [

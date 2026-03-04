@@ -159,6 +159,18 @@ function parseProperty(
     }
   }
 
+  // Handle z.object() / z.record() types
+  if (!property.type && (cleaned.match(/^z\.\s*object\(/) || cleaned.match(/^z\.\s*record\(/))) {
+    property.type = 'object';
+    property.additionalProperties = true;
+  }
+
+  // Fallback: if no type was detected, default to object with additionalProperties
+  if (!property.type) {
+    property.type = 'object';
+    property.additionalProperties = true;
+  }
+
   // Handle number constraints
   if (property.type === 'number') {
     const minMatch = cleaned.match(/\.min\((\d+)\)/);
