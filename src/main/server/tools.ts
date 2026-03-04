@@ -3,7 +3,7 @@
  * Total 52 tools (40 from original + 12 additional)
  *
  * Auto-generated from: https://raw.githubusercontent.com/grab/cursor-talk-to-figma-mcp/refs/heads/main/src/talk_to_figma_mcp/server.ts
- * Generated at: 2026-03-04T08:32:28.573Z
+ * Generated at: 2026-03-04T12:20:39.521Z
  *
  * To regenerate: npm run generate:tools
  */
@@ -1189,6 +1189,7 @@ export const allTools: ToolDefinition[] = [  {
         },
         "properties": {
           "type": "object",
+          "additionalProperties": true,
           "description": "Map of property names to values. Names must match exactly as returned by get_component_properties."
         }
       },

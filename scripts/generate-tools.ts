@@ -459,6 +459,7 @@ const ADDITIONAL_TOOLS: ToolDefinition[] = [
         },
         properties: {
           type: 'object',
+          additionalProperties: true,
           description:
             'Map of property names to values. Names must match exactly as returned by get_component_properties.',
         },
