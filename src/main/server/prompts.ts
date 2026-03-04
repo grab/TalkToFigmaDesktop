@@ -54,6 +54,12 @@ export const allPrompts: PromptDefinition[] = [
       "Strategy for converting Figma prototype reactions to connector lines using the output of 'get_reactions'",
     arguments: [],
   },
+  {
+    name: 'component_property_strategy',
+    description:
+      'Strategy for discovering and modifying component variant properties (Size, State, Shape, etc.) on component instances',
+    arguments: [],
+  },
 ];
 
 export const promptContents: Record<
@@ -562,6 +568,58 @@ You will receive JSON data from the \\\`get_reactions\\\` tool. This data contai
    - **Verify:** Check the response from \\\`create_connections\\\` to confirm success or failure.
 
 This detailed process ensures you correctly interpret the reaction data, prepare the necessary information, and use the appropriate tools to create the connector lines.`,
+        },
+      },
+    ],
+  },
+  component_property_strategy: {
+    description:
+      'Strategy for discovering and modifying component variant properties (Size, State, Shape, etc.) on component instances',
+    messages: [
+      {
+        role: 'assistant',
+        content: {
+          type: 'text',
+          text: `# Component Property Strategy
+
+## Overview
+This strategy enables discovering and modifying component variant properties (Size, State, Shape, etc.) on component instances in Figma.
+
+## 3-Step Workflow
+
+### Step 1: Find Component Instances
+Use \\\`scan_nodes_by_types\\\` to locate INSTANCE nodes in the design:
+\\\`\\\`\\\`
+scan_nodes_by_types({ nodeId: "parent-frame-id", types: ["INSTANCE"] })
+\\\`\\\`\\\`
+
+### Step 2: Discover Properties
+Use \\\`get_component_properties\\\` to see available properties and their current values:
+\\\`\\\`\\\`
+get_component_properties({ nodeId: "instance-node-id" })
+\\\`\\\`\\\`
+Returns property names, types (VARIANT, BOOLEAN, TEXT, INSTANCE_SWAP), current values, and preferred values for VARIANT types.
+
+### Step 3: Set Properties
+Use \\\`set_component_properties\\\` to change one or more properties:
+\\\`\\\`\\\`
+set_component_properties({
+  nodeId: "instance-node-id",
+  properties: {
+    "Size#12:0": "Large",
+    "State#12:1": "Hover",
+    "Has Icon#12:2": true
+  }
+})
+\\\`\\\`\\\`
+
+## Important Notes
+- Property names include a hash suffix (e.g., "Size#12:0"). Always use \\\`get_component_properties\\\` first to discover exact names.
+- VARIANT properties accept string values matching the variant options.
+- BOOLEAN properties accept true/false (string "true"/"false" is auto-coerced).
+- TEXT properties accept any string value.
+- INSTANCE_SWAP properties accept a component key.
+- Invalid property names will return an error listing all available properties.`,
         },
       },
     ],

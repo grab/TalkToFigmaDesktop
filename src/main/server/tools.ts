@@ -1,15 +1,9 @@
-/*
- * Copyright 2026 Grabtaxi Holdings Pte Ltd (GRAB), All rights reserved.
- *
- * Use of this source code is governed by an MIT-style license that can be found in the LICENSE file
- */
-
 /**
  * Figma MCP Tools Definitions
- * Total 50 tools (40 from original + 10 additional)
+ * Total 52 tools (40 from original + 12 additional)
  *
  * Auto-generated from: https://raw.githubusercontent.com/grab/cursor-talk-to-figma-mcp/refs/heads/main/src/talk_to_figma_mcp/server.ts
- * Generated at: 2026-01-20T17:15:57.879Z
+ * Generated at: 2026-03-04T08:32:28.573Z
  *
  * To regenerate: npm run generate:tools
  */
@@ -74,11 +68,7 @@ export const allTools: ToolDefinition[] = [  {
       "type": "object",
       "properties": {
         "nodeIds": {
-          "description": "Array of node IDs to get information about",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+          "description": "Array of node IDs to get information about"
         }
       },
       "required": [
@@ -110,10 +100,6 @@ export const allTools: ToolDefinition[] = [  {
         },
         "name": {
           "description": "Optional name for the rectangle",
-          "type": "string"
-        },
-        "parentId": {
-          "description": "Optional parent node ID to append the rectangle to",
           "type": "string"
         }
       },
@@ -149,10 +135,6 @@ export const allTools: ToolDefinition[] = [  {
         },
         "name": {
           "description": "Optional name for the frame",
-          "type": "string"
-        },
-        "parentId": {
-          "description": "Optional parent node ID to append the frame to",
           "type": "string"
         },
         "r": {
@@ -243,7 +225,13 @@ export const allTools: ToolDefinition[] = [  {
         "x",
         "y",
         "width",
-        "height"
+        "height",
+        "r",
+        "g",
+        "b",
+        "r",
+        "g",
+        "b"
       ]
     }
   },
@@ -269,47 +257,32 @@ export const allTools: ToolDefinition[] = [  {
           "description": "Font size (default: 14)",
           "type": "number"
         },
-        "fontWeight": {
-          "description": "Font weight (e.g., 400 for Regular, 700 for Bold)",
-          "type": "number"
-        },
         "r": {
-          "description": "Red component (0-1) for font color",
+          "description": "Red component (0-1)",
           "type": "number",
           "minimum": 0,
           "maximum": 1
         },
         "g": {
-          "description": "Green component (0-1) for font color",
+          "description": "Green component (0-1)",
           "type": "number",
           "minimum": 0,
           "maximum": 1
         },
         "b": {
-          "description": "Blue component (0-1) for font color",
+          "description": "Blue component (0-1)",
           "type": "number",
           "minimum": 0,
           "maximum": 1
-        },
-        "a": {
-          "description": "Alpha component (0-1) for font color",
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "name": {
-          "description": "Semantic layer name for the text node",
-          "type": "string"
-        },
-        "parentId": {
-          "description": "Optional parent node ID to append the text to",
-          "type": "string"
         }
       },
       "required": [
         "x",
         "y",
-        "text"
+        "text",
+        "r",
+        "g",
+        "b"
       ]
     }
   },
@@ -502,11 +475,7 @@ export const allTools: ToolDefinition[] = [  {
       "type": "object",
       "properties": {
         "nodeIds": {
-          "description": "Array of node IDs to delete",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+          "description": "Array of node IDs to delete"
         }
       },
       "required": [
@@ -615,22 +584,16 @@ export const allTools: ToolDefinition[] = [  {
           "description": "The ID of the annotation category",
           "type": "string"
         },
-        "properties": {
-          "description": "Additional properties for the annotation",
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "type": {
-                "type": "string"
-              }
-            }
-          }
+        "properties": {},
+        "type": {
+          "type": "string"
         }
       },
       "required": [
         "nodeId",
-        "labelMarkdown"
+        "labelMarkdown",
+        "properties",
+        "type"
       ]
     }
   },
@@ -640,52 +603,35 @@ export const allTools: ToolDefinition[] = [  {
     "inputSchema": {
       "type": "object",
       "properties": {
+        "annotations": {},
         "nodeId": {
-          "description": "The ID of the node containing the elements to annotate",
+          "description": "The ID of the node to annotate",
           "type": "string"
         },
-        "annotations": {
+        "labelMarkdown": {
+          "description": "The annotation text in markdown format",
+          "type": "string"
+        },
+        "categoryId": {
+          "description": "The ID of the annotation category",
+          "type": "string"
+        },
+        "annotationId": {
+          "description": "The ID of the annotation to update (if updating existing annotation)",
+          "type": "string"
+        },
+        "properties": {},
+        "type": {
           "description": "Array of annotations to apply",
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "nodeId": {
-                "description": "The ID of the node to annotate",
-                "type": "string"
-              },
-              "labelMarkdown": {
-                "description": "The annotation text in markdown format",
-                "type": "string"
-              },
-              "categoryId": {
-                "description": "The ID of the annotation category",
-                "type": "string"
-              },
-              "annotationId": {
-                "description": "The ID of the annotation to update (if updating existing annotation)",
-                "type": "string"
-              },
-              "properties": {
-                "description": "Additional properties for the annotation",
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            },
-            "required": ["nodeId", "labelMarkdown"]
-          }
+          "type": "string"
         }
       },
       "required": [
+        "annotations",
         "nodeId",
-        "annotations"
+        "labelMarkdown",
+        "properties",
+        "type"
       ]
     }
   },
@@ -740,11 +686,7 @@ export const allTools: ToolDefinition[] = [  {
           "type": "string"
         },
         "targetNodeIds": {
-          "description": "Array of target instance IDs. Currently selected instances will be used.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+          "description": "Array of target instance IDs. Currently selected instances will be used."
         }
       },
       "required": [
@@ -764,18 +706,9 @@ export const allTools: ToolDefinition[] = [  {
           "type": "string"
         },
         "radius": {
-          "description": "Corner radius value in pixels",
+          "description": "Corner radius value",
           "type": "number",
           "minimum": 0
-        },
-        "corners": {
-          "description": "Optional array of 4 booleans to specify which corners to round [topLeft, topRight, bottomRight, bottomLeft]",
-          "type": "array",
-          "items": {
-            "type": "boolean"
-          },
-          "minItems": 4,
-          "maxItems": 4
         }
       },
       "required": [
@@ -810,13 +743,7 @@ export const allTools: ToolDefinition[] = [  {
           "description": "ID of the node to scan",
           "type": "string"
         },
-        "types": {
-          "description": "Array of node types to find in the child nodes (e.g. ['COMPONENT', 'FRAME'])",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
+        "types": {}
       },
       "required": [
         "nodeId",
@@ -830,30 +757,17 @@ export const allTools: ToolDefinition[] = [  {
     "inputSchema": {
       "type": "object",
       "properties": {
-        "nodeId": {
-          "description": "The ID of the node containing the text nodes to replace",
+        "text": {
+          "description": "The replacement text",
           "type": "string"
         },
-        "text": {
-          "description": "Array of text node IDs and their replacement texts",
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "nodeId": {
-                "description": "The ID of the text node",
-                "type": "string"
-              },
-              "text": {
-                "description": "The replacement text",
-                "type": "string"
-              }
-            },
-            "required": ["nodeId", "text"]
-          }
+        "nodeId": {
+          "description": "The ID of the text node",
+          "type": "string"
         }
       },
       "required": [
+        "text",
         "nodeId",
         "text"
       ]
@@ -934,26 +848,6 @@ export const allTools: ToolDefinition[] = [  {
         "nodeId": {
           "description": "The ID of the frame to modify",
           "type": "string"
-        },
-        "primaryAxisAlignItems": {
-          "description": "Primary axis alignment (MIN/MAX = left/right in horizontal, top/bottom in vertical). Note: When set to SPACE_BETWEEN, itemSpacing will be ignored as children will be evenly spaced.",
-          "type": "string",
-          "enum": [
-            "MIN",
-            "MAX",
-            "CENTER",
-            "SPACE_BETWEEN"
-          ]
-        },
-        "counterAxisAlignItems": {
-          "description": "Counter axis alignment (MIN/MAX = top/bottom in horizontal, left/right in vertical)",
-          "type": "string",
-          "enum": [
-            "MIN",
-            "MAX",
-            "CENTER",
-            "BASELINE"
-          ]
         }
       },
       "required": [
@@ -970,24 +864,6 @@ export const allTools: ToolDefinition[] = [  {
         "nodeId": {
           "description": "The ID of the frame to modify",
           "type": "string"
-        },
-        "layoutSizingHorizontal": {
-          "description": "Horizontal sizing mode (HUG for frames/text only, FILL for auto-layout children only)",
-          "type": "string",
-          "enum": [
-            "FIXED",
-            "HUG",
-            "FILL"
-          ]
-        },
-        "layoutSizingVertical": {
-          "description": "Vertical sizing mode (HUG for frames/text only, FILL for auto-layout children only)",
-          "type": "string",
-          "enum": [
-            "FIXED",
-            "HUG",
-            "FILL"
-          ]
         }
       },
       "required": [
@@ -1021,16 +897,12 @@ export const allTools: ToolDefinition[] = [  {
   },
   {
     "name": "get_reactions",
-    "description": "Get Figma Prototyping Reactions from multiple nodes for analyzing prototype flows and interactions. CRITICAL: The output MUST be processed using the 'reaction_to_connector_strategy' prompt IMMEDIATELY to generate parameters for connector lines via the 'create_connections' tool.",
+    "description": "Get Figma Prototyping Reactions from multiple nodes. CRITICAL: The output MUST be processed using the 'reaction_to_connector_strategy' prompt IMMEDIATELY to generate parameters for connector lines via the 'create_connections' tool.",
     "inputSchema": {
       "type": "object",
       "properties": {
         "nodeIds": {
-          "description": "Array of node IDs to get reactions from",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+          "description": "Array of node IDs to get reactions from"
         }
       },
       "required": [
@@ -1058,31 +930,24 @@ export const allTools: ToolDefinition[] = [  {
     "inputSchema": {
       "type": "object",
       "properties": {
-        "connections": {
-          "description": "Array of connection objects, each with startNodeId, endNodeId, and optional text",
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "startNodeId": {
-                "description": "ID of the starting node",
-                "type": "string"
-              },
-              "endNodeId": {
-                "description": "ID of the ending node",
-                "type": "string"
-              },
-              "text": {
-                "description": "Optional text to display on the connector",
-                "type": "string"
-              }
-            },
-            "required": ["startNodeId", "endNodeId"]
-          }
+        "connections": {},
+        "startNodeId": {
+          "description": "ID of the starting node",
+          "type": "string"
+        },
+        "endNodeId": {
+          "description": "ID of the ending node",
+          "type": "string"
+        },
+        "text": {
+          "description": "Optional text to display on the connector",
+          "type": "string"
         }
       },
       "required": [
-        "connections"
+        "connections",
+        "startNodeId",
+        "endNodeId"
       ]
     }
   },
@@ -1109,11 +974,7 @@ export const allTools: ToolDefinition[] = [  {
       "type": "object",
       "properties": {
         "nodeIds": {
-          "description": "Array of node IDs to select",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+          "description": "Array of node IDs to select"
         }
       },
       "required": [
@@ -1298,6 +1159,43 @@ export const allTools: ToolDefinition[] = [  {
       "type": "object",
       "properties": {},
       "required": []
+    }
+  },
+  {
+    "name": "get_component_properties",
+    "description": "Get all component properties from a component instance node, including property names, types (VARIANT, BOOLEAN, TEXT, INSTANCE_SWAP), current values, and available options for VARIANT types. Use this before set_component_properties to discover valid property names.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "The ID of the component instance node"
+        }
+      },
+      "required": [
+        "nodeId"
+      ]
+    }
+  },
+  {
+    "name": "set_component_properties",
+    "description": "Set one or more component properties on a component instance node. Supports VARIANT (string), BOOLEAN (true/false), TEXT (string), INSTANCE_SWAP (component key). Use get_component_properties first to discover property names and allowed values.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "The ID of the component instance node to modify"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Map of property names to values. Names must match exactly as returned by get_component_properties."
+        }
+      },
+      "required": [
+        "nodeId",
+        "properties"
+      ]
     }
   }
 ];

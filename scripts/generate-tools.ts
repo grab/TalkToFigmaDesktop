@@ -431,6 +431,41 @@ const ADDITIONAL_TOOLS: ToolDefinition[] = [
       required: [],
     },
   },
+  {
+    name: 'get_component_properties',
+    description:
+      'Get all component properties from a component instance node, including property names, types (VARIANT, BOOLEAN, TEXT, INSTANCE_SWAP), current values, and available options for VARIANT types. Use this before set_component_properties to discover valid property names.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        nodeId: {
+          type: 'string',
+          description: 'The ID of the component instance node',
+        },
+      },
+      required: ['nodeId'],
+    },
+  },
+  {
+    name: 'set_component_properties',
+    description:
+      'Set one or more component properties on a component instance node. Supports VARIANT (string), BOOLEAN (true/false), TEXT (string), INSTANCE_SWAP (component key). Use get_component_properties first to discover property names and allowed values.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        nodeId: {
+          type: 'string',
+          description: 'The ID of the component instance node to modify',
+        },
+        properties: {
+          type: 'object',
+          description:
+            'Map of property names to values. Names must match exactly as returned by get_component_properties.',
+        },
+      },
+      required: ['nodeId', 'properties'],
+    },
+  },
 ];
 
 /**
