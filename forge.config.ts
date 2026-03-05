@@ -185,7 +185,7 @@ const config: ForgeConfig = {
   makers: [
     // macOS: DMG (primary) and ZIP (backup/CI) for Developer ID distribution
     new MakerDMG({
-      format: 'ULFO',
+      format: 'UDZO',
       icon: './public/icon.icns', // DMG volume icon (prevents Electron default icon confusion)
     }, ['darwin']),
     new MakerZIP({}, ['darwin']),
