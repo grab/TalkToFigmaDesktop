@@ -276,24 +276,27 @@ export class WebSocketClient {
 
       logger.debug(`Received message: ${JSON.stringify(json).substring(0, 200)}`);
 
-      // Handle progress updates
+      // Handle progress updates — reset inactivity timeout for long-running commands
       if (json.type === 'progress_update') {
-        const progressData = json.message?.data;
-        if (progressData) {
-          const requestId = json.id;
-          if (requestId && this.pendingRequests.has(requestId)) {
-            const request = this.pendingRequests.get(requestId)!;
-            request.lastActivity = Date.now();
+        const requestId = json.id || json.message?.id;
 
-            // Extend timeout on progress update
-            clearTimeout(request.timeout);
-            request.timeout = setTimeout(() => {
-              if (this.pendingRequests.has(requestId)) {
-                this.pendingRequests.delete(requestId);
-                request.reject(new Error('Request to Figma timed out'));
-              }
-            }, 60000);
-          }
+        if (requestId && this.pendingRequests.has(requestId)) {
+          const request = this.pendingRequests.get(requestId)!;
+          request.lastActivity = Date.now();
+
+          clearTimeout(request.timeout);
+          request.timeout = setTimeout(() => {
+            if (this.pendingRequests.has(requestId)) {
+              this.pendingRequests.delete(requestId);
+              request.reject(new Error('Request to Figma timed out (inactivity after progress)'));
+            }
+          }, 60000);
+
+          logger.debug(`Progress update received, timeout reset for request ${requestId.substring(0, 8)}...`);
+        } else if (requestId) {
+          logger.warn(`Progress update for unknown request: ${requestId.substring(0, 8)}... (pending: ${this.pendingRequests.size})`);
+        } else {
+          logger.warn(`Progress update without request ID, cannot reset timeout`);
         }
         return;
       }

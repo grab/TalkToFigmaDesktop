@@ -49,6 +49,8 @@ export class TalkToFigmaWebSocketServer {
   private servicesInitialized = false;
   // Track pending requests for analytics (request ID -> command name)
   private pendingRequests: Map<string, { command: string; timestamp: number }> = new Map();
+  // Track which MCP client originated each request (request ID -> ws)
+  private requestOrigins: Map<string, WebSocket> = new Map();
   private pendingRequestCleanupInterval: NodeJS.Timeout | null = null;
   private readonly PENDING_REQUEST_MAX_AGE_MS = 5 * 60 * 1000;
   private readonly PENDING_REQUEST_CLEANUP_INTERVAL_MS = 10 * 1000;
@@ -153,6 +155,7 @@ export class TalkToFigmaWebSocketServer {
       // Clear channels
       this.channels.clear();
       this.pendingRequests.clear();
+      this.requestOrigins.clear();
 
       // Close the server
       this.wss!.close(() => {
@@ -376,7 +379,7 @@ export class TalkToFigmaWebSocketServer {
     // Store pending request for analytics tracking (when command is present)
     if (command && typeof command === 'string' && requestId) {
       this.pendingRequests.set(requestId, { command, timestamp: Date.now() });
-      // Clean up old pending requests (older than 5 minutes)
+      this.requestOrigins.set(requestId, ws);
       this.cleanupPendingRequests();
     }
 
@@ -425,7 +428,6 @@ export class TalkToFigmaWebSocketServer {
       (messageContent.result !== undefined || messageContent.error !== undefined);
 
     if (isResponseMessage) {
-      // Track MCP tool call result based on response content
       const responseId = messageContent.id || data.id;
       if (responseId) {
         const pendingRequest = this.pendingRequests.get(responseId);
@@ -439,6 +441,7 @@ export class TalkToFigmaWebSocketServer {
             durationMs
           );
           this.pendingRequests.delete(responseId);
+          this.requestOrigins.delete(responseId);
         }
       }
 
@@ -552,10 +555,13 @@ export class TalkToFigmaWebSocketServer {
   }
 
   /**
-   * Handle progress update message
+   * Handle progress update message from Figma plugin.
+   * Delivers directly to the originating MCP client (tracked via requestOrigins)
+   * and also broadcasts to the channel for other interested listeners.
    */
   private handleProgressUpdate(ws: WebSocket, data: any): void {
     const channelName = data.channel;
+    const requestId = data.id;
 
     if (!channelName) {
       return;
@@ -566,15 +572,35 @@ export class TalkToFigmaWebSocketServer {
       return;
     }
 
-    this.addLog('DEBUG', `Progress update in channel: ${channelName}`);
+    // The plugin sends progress data nested inside message.data
+    const progressData = data.message?.data ?? data;
+    const progressValue: number | undefined = progressData.progress;
+    const progressMessage: string | undefined = progressData.message;
 
-    // Broadcast progress update to all clients in the channel
-    this.broadcastToChannel(channelName, {
+    const progressPayload = {
       type: 'progress_update',
-      progress: data.progress,
-      message: data.message,
+      id: requestId,
+      progress: progressValue,
+      message: progressMessage,
       channel: channelName,
-    });
+    };
+
+    // Direct delivery to the originating MCP client that sent the command.
+    // This is more reliable than relying solely on broadcast.
+    if (requestId) {
+      const originWs = this.requestOrigins.get(requestId);
+      if (originWs && originWs.readyState === WebSocket.OPEN) {
+        originWs.send(JSON.stringify(progressPayload));
+        const pct = progressValue != null ? ` ${progressValue}%` : '';
+        const msg = progressMessage ? ` - ${progressMessage}` : '';
+        this.addLog('DEBUG', `Progress update delivered to MCP client (request: ${requestId.substring(0, 8)}...)${pct}${msg}`);
+      } else {
+        this.addLog('WARN', `Progress update: no origin found for request ${requestId.substring(0, 8)}..., falling back to broadcast`);
+      }
+    }
+
+    // Also broadcast to the channel for any other listeners
+    this.broadcastToChannel(channelName, progressPayload, ws);
   }
 
   /**
@@ -772,6 +798,7 @@ export class TalkToFigmaWebSocketServer {
       if (elapsedMs > this.PENDING_REQUEST_MAX_AGE_MS) {
         trackMCPToolCall(request.command, false, 'Request timed out', elapsedMs);
         this.pendingRequests.delete(id);
+        this.requestOrigins.delete(id);
       }
     }
   }

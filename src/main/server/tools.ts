@@ -691,12 +691,16 @@ export const allTools: ToolDefinition[] = [  {
   },
   {
     "name": "create_component_instance",
-    "description": "Create an instance of a component in Figma",
+    "description": "Create an instance of a component in Figma. For LOCAL components (from get_local_components), use componentId with the id field. For published LIBRARY components, use componentKey with the publishedKey field.",
     "inputSchema": {
       "type": "object",
       "properties": {
+        "componentId": {
+          "description": "ID of a local component (use the id field from get_local_components result). Use this for unpublished/local components.",
+          "type": "string"
+        },
         "componentKey": {
-          "description": "Key of the component to instantiate",
+          "description": "Key of a published library component to instantiate (use the publishedKey field from get_local_components result). Only works for published components.",
           "type": "string"
         },
         "x": {
@@ -706,10 +710,13 @@ export const allTools: ToolDefinition[] = [  {
         "y": {
           "description": "Y position",
           "type": "number"
+        },
+        "parentId": {
+          "description": "Optional parent node ID to place the instance into",
+          "type": "string"
         }
       },
       "required": [
-        "componentKey",
         "x",
         "y"
       ]
