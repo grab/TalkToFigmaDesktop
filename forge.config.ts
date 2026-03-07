@@ -195,7 +195,8 @@ const config: ForgeConfig = {
     }, ['mas']),
     // Windows: Squirrel for traditional distribution with auto-update
     new MakerSquirrel({
-      // Squirrel for traditional installer
+      setupIcon: './public/icon.ico',
+      iconUrl: 'https://raw.githubusercontent.com/grab/TalkToFigmaDesktop/main/public/icon.ico',
     }, ['win32']),
     // Windows: MSIX for Microsoft Store distribution (no signing required for store submission)
     new MakerMSIX({
