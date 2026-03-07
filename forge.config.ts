@@ -187,6 +187,7 @@ const config: ForgeConfig = {
     new MakerDMG({
       format: 'UDZO',
       icon: './public/icon.icns', // DMG volume icon (prevents Electron default icon confusion)
+      name: 'TalkToFigmaDesktop', // Volume name without spaces to avoid hdiutil issues
     }, ['darwin']),
     new MakerZIP({}, ['darwin']),
     // macOS: PKG for Mac App Store distribution
