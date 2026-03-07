@@ -4,7 +4,7 @@ stages:
   - create-release
 
 variables:
-  NODE_VERSION: "18"
+  NODE_VERSION: "20"
   # Prevent npm install warnings
   npm_config_loglevel: "error"
 
@@ -15,7 +15,7 @@ workflow:
 # Test stage - runs on Linux for speed
 test:
   stage: test
-  image: node:18-alpine
+  image: node:20-alpine
   before_script:
     - apk add --no-cache git
   script:
@@ -170,7 +170,7 @@ create-release:
 
       ### 📋 Requirements
       - macOS 10.15 (Catalina) or later
-      - Node.js 18+ (for MCP server)
+      - Node.js 20+ (for MCP server)
 
       ### 🚀 What's New
       See commit history for details." \
