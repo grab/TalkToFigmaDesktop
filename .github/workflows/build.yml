@@ -17,7 +17,7 @@ permissions:
   checks: write
 
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: '20'
 
 jobs:
   # Test stage - runs on Linux for speed
@@ -37,7 +37,7 @@ jobs:
         run: npm ci --prefer-offline
 
       - name: Run linter
-        run: npm run lint -- --max-warnings=-1
+        run: npm run lint
 
   # Build stage - macOS with code signing
   build-macos:

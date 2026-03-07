@@ -6,7 +6,7 @@ on:
       - 'v*'
 
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: '20'
 
 jobs:
   test:
@@ -33,7 +33,7 @@ jobs:
         run: npm ci --prefer-offline
       
       - name: Run linter
-        run: npm run lint -- --max-warnings=-1
+        run: npm run lint
       
       # Note: Electron tests would require a display, so we only run linting here
       # Add test script when unit tests are available  
