@@ -37,7 +37,8 @@
       "lastResolvedAt": "2026-04-20T15:20:36.252Z",
       "binaryRelativePath": "bin/windows-x64/llama-server.exe",
       "binarySha256": "ea2239a647e835b1c9640694520211d5807daae795aff6d2c398ac8ac99efe64",
-      "preparedAt": "2026-04-20T15:20:43.283Z"
+      "preparedAt": "2026-04-30T16:47:28.386Z",
+      "runtimeDependencyCount": 21
     },
     "windows-arm64": {
       "assetName": "llama-b8855-bin-win-cpu-arm64.zip",
@@ -46,5 +47,5 @@
       "lastResolvedAt": "2026-04-20T15:20:36.252Z"
     }
   },
-  "updatedAt": "2026-04-20T16:17:58.903Z"
+  "updatedAt": "2026-04-30T16:47:28.389Z"
 }
