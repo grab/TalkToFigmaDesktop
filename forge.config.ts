@@ -79,7 +79,11 @@ const config: ForgeConfig = {
       teamId: process.env.APPLE_TEAM_ID || 'VU3G7T53K5',
     },
   },
-  rebuildConfig: {},
+  rebuildConfig: {
+    // These ws accelerators are optional. Skipping their Electron rebuild keeps
+    // local dev startup working on machines without Visual Studio C++ toolchains.
+    ignoreModules: ['bufferutil', 'utf-8-validate'],
+  },
   // Hooks for post-processing after packaging
   hooks: {
     postPackage: async (_config, options) => {

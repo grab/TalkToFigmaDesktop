@@ -95,8 +95,41 @@ const requestAppQuit = async () => {
   }
 };
 
+const shouldHideMainWindowOnClose = () => (
+  process.platform === 'darwin' || process.platform === 'win32'
+);
+
+const revealMainWindow = () => {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return;
+  }
+
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  }
+
+  mainWindow.show();
+  mainWindow.focus();
+};
+
+const attachMainWindowLifecycle = (window: BrowserWindow) => {
+  window.on('close', (event) => {
+    if (shouldHideMainWindowOnClose() && !quitRequested) {
+      event.preventDefault();
+      window.hide();
+    }
+  });
+
+  window.on('closed', () => {
+    if (mainWindow === window) {
+      mainWindow = null;
+      setMainWindow(null);
+    }
+  });
+};
+
 const createWindow = () => {
-  mainWindow = createMainWindow({
+  const window = createMainWindow({
     preloadPath: path.join(__dirname, 'preload.cjs'),
     logger,
     loadRenderer: (window) => loadRenderer(window, rendererLoaderOptions),
@@ -104,6 +137,9 @@ const createWindow = () => {
     setLoggerWindow: setMainWindow,
     createMenu: (window) => createMenu(window, requestAppQuit),
   });
+
+  attachMainWindowLifecycle(window);
+  mainWindow = window;
 };
 
 const createTray = () => {
@@ -216,6 +252,11 @@ app.on('window-all-closed', () => {
 });
 
 app.on('activate', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    revealMainWindow();
+    return;
+  }
+
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }

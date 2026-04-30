@@ -1,10 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import { lazy, Suspense, useState, useEffect, useRef } from 'react'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar, PageId } from '@/components/app-sidebar'
 import { Separator } from '@/components/ui/separator'
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb'
-import { TutorialDialog } from '@/components/TutorialDialog'
-import { SseMigrationDialog } from '@/components/SseMigrationDialog'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { LocaleProvider } from '@/components/LocaleProvider'
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler'
@@ -14,9 +12,20 @@ import { useTranslation } from 'react-i18next'
 
 // Pages
 import { TerminalPage } from '@/pages/Terminal'
-import { SettingsPage } from '@/pages/Settings'
-import { HelpPage } from '@/pages/Help'
-import { AssistantPage } from '@/pages/Assistant'
+
+const TutorialDialog = lazy(() => import('@/components/TutorialDialog').then((module) => ({ default: module.TutorialDialog })))
+const SseMigrationDialog = lazy(() => import('@/components/SseMigrationDialog').then((module) => ({ default: module.SseMigrationDialog })))
+const SettingsPage = lazy(() => import('@/pages/Settings').then((module) => ({ default: module.SettingsPage })))
+const HelpPage = lazy(() => import('@/pages/Help').then((module) => ({ default: module.HelpPage })))
+const AssistantPage = lazy(() => import('@/pages/Assistant').then((module) => ({ default: module.AssistantPage })))
+
+function PageFallback() {
+  return (
+    <div className="flex h-full min-h-[240px] items-center justify-center rounded-xl border bg-card text-sm text-muted-foreground">
+      Loading...
+    </div>
+  )
+}
 
 // Track page view when page changes
 function usePageViewTracking(currentPage: PageId, title: string) {
@@ -321,19 +330,27 @@ Ready to bridge Figma and AI tools via MCP
 
   return (
     <ThemeProvider>
-      <TutorialDialog
-        open={tutorialOpen}
-        onOpenChange={setTutorialOpen}
-        onComplete={handleTutorialComplete}
-      />
-      <SseMigrationDialog
-        open={migrationDialogOpen}
-        onClose={() => setMigrationDialogOpen(false)}
-        onGoToSettings={() => {
-          setMigrationDialogOpen(false)
-          setCurrentPage('settings')
-        }}
-      />
+      {tutorialOpen && (
+        <Suspense fallback={null}>
+          <TutorialDialog
+            open={tutorialOpen}
+            onOpenChange={setTutorialOpen}
+            onComplete={handleTutorialComplete}
+          />
+        </Suspense>
+      )}
+      {migrationDialogOpen && (
+        <Suspense fallback={null}>
+          <SseMigrationDialog
+            open={migrationDialogOpen}
+            onClose={() => setMigrationDialogOpen(false)}
+            onGoToSettings={() => {
+              setMigrationDialogOpen(false)
+              setCurrentPage('settings')
+            }}
+          />
+        </Suspense>
+      )}
       <SidebarProvider>
         <AppSidebar
           currentPage={currentPage}
@@ -402,7 +419,9 @@ Ready to bridge Figma and AI tools via MCP
             </div>
           </header>
           <main className="flex-1 min-w-0 min-h-0 overflow-y-auto overflow-x-hidden p-4">
-            {renderPage()}
+            <Suspense fallback={<PageFallback />}>
+              {renderPage()}
+            </Suspense>
           </main>
         </SidebarInset>
       </SidebarProvider>

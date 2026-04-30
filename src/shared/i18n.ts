@@ -77,6 +77,7 @@ function createLocaleResources(locale: AppLocale, _nativeName: string): Translat
       selectAll: locale === 'ko' ? '모두 선택' : locale === 'ru' ? 'Выбрать все' : locale === 'hi' ? 'सब चुनें' : locale === 'ta' ? 'அனைத்தையும் தேர்வு செய்' : 'Select All',
       minimize: locale === 'ko' ? '최소화' : locale === 'ru' ? 'Свернуть' : locale === 'hi' ? 'छोटा करें' : locale === 'ta' ? 'சுருக்கு' : 'Minimize',
       zoom: locale === 'ko' ? '확대/축소' : locale === 'ru' ? 'Масштаб' : locale === 'hi' ? 'ज़ूम' : locale === 'ta' ? 'பெரிதாக்கு' : 'Zoom',
+      showMainWindow: locale === 'ko' ? '메인 창 보기' : locale === 'ru' ? 'Показать главное окно' : locale === 'hi' ? 'मुख्य विंडो दिखाएँ' : locale === 'ta' ? 'முதன்மை சாளரத்தை காட்டு' : 'Show Main Window',
       closeWindow: locale === 'ko' ? '창 닫기' : locale === 'ru' ? 'Закрыть окно' : locale === 'hi' ? 'विंडो बंद करें' : locale === 'ta' ? 'சாளரத்தை மூடு' : 'Close Window',
       bringAllToFront: locale === 'ko' ? '모두 앞으로 가져오기' : locale === 'ru' ? 'Вывести все вперед' : locale === 'hi' ? 'सभी आगे लाएँ' : locale === 'ta' ? 'அனைத்தையும் முன் கொண்டு வா' : 'Bring All to Front',
       restart: locale === 'ko' ? '재시작' : locale === 'ru' ? 'Перезапустить' : locale === 'hi' ? 'रीस्टार्ट' : locale === 'ta' ? 'மீள்தொடங்கு' : 'Restart',

@@ -72,6 +72,12 @@ export class TalkToFigmaTray {
       const icon = this.getIcon();
       this.tray = new Tray(icon);
       this.tray.setToolTip(t('native.tray.tooltip'));
+      this.tray.on('click', () => {
+        this.showMainWindow();
+      });
+      this.tray.on('double-click', () => {
+        this.showMainWindow();
+      });
       this.updateMenu();
 
       logger.info('[TalkToFigma Tray] ✅ System tray created');
@@ -125,6 +131,10 @@ export class TalkToFigmaTray {
       { type: 'separator' },
 
       // ═══ WINDOW & PAGES ═══
+      {
+        label: t('common.showMainWindow'),
+        click: () => this.showMainWindow(),
+      },
       {
         label: t('app.nav.assistant'),
         click: () => this.showPage('assistant'),
@@ -318,6 +328,31 @@ export class TalkToFigmaTray {
   }
 
   /**
+   * Show the main window without changing the current page
+   */
+  private showMainWindow(): void {
+    try {
+      const windows = BrowserWindow.getAllWindows();
+
+      if (windows.length === 0) {
+        logger.warn('[TalkToFigma Tray] No windows available');
+        return;
+      }
+
+      const mainWindow = windows[0];
+
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore();
+      }
+
+      mainWindow.show();
+      mainWindow.focus();
+    } catch (error) {
+      logger.error('[TalkToFigma Tray] Failed to show main window:', error);
+    }
+  }
+
+  /**
    * Show main window and navigate to specific page
    */
   private showPage(page: 'assistant' | 'terminal' | 'settings' | 'help'): void {
@@ -329,14 +364,9 @@ export class TalkToFigmaTray {
         return;
       }
 
-      const mainWindow = windows[0];
+      this.showMainWindow();
 
-      // Show and focus the window
-      if (mainWindow.isMinimized()) {
-        mainWindow.restore();
-      }
-      mainWindow.show();
-      mainWindow.focus();
+      const mainWindow = windows[0];
 
       // Send IPC message to navigate to the page
       mainWindow.webContents.send('tray:navigate-to-page', page);

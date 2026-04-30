@@ -17,6 +17,7 @@ import { t } from './i18n';
  */
 export function createMenu(mainWindow: BrowserWindow, requestQuit: () => void | Promise<void>) {
   const isMac = process.platform === 'darwin';
+  const showsWindowAfterClose = isMac || process.platform === 'win32';
   const { canCheckForUpdates } = getUpdateCapabilities();
   const serverManager = TalkToFigmaServerManager.getInstance();
   const service = TalkToFigmaService.getInstance();
@@ -32,6 +33,16 @@ export function createMenu(mainWindow: BrowserWindow, requestQuit: () => void | 
       mainWindow.show();
       mainWindow.focus();
       mainWindow.webContents.send('tray:navigate-to-page', page);
+    }
+  };
+
+  const showMainWindow = () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore();
+      }
+      mainWindow.show();
+      mainWindow.focus();
     }
   };
 
@@ -180,6 +191,15 @@ export function createMenu(mainWindow: BrowserWindow, requestQuit: () => void | 
     {
       label: t('native.menu.window'),
       submenu: [
+        ...(showsWindowAfterClose
+          ? [
+              {
+                label: t('common.showMainWindow'),
+                click: () => showMainWindow(),
+              } as MenuItemConstructorOptions,
+              { type: 'separator' as const },
+            ]
+          : []),
         { label: t('common.minimize'), role: 'minimize' },
         { label: t('common.zoom'), role: 'zoom' },
         ...(isMac
