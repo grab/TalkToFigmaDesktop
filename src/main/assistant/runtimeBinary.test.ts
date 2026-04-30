@@ -5,6 +5,7 @@
  */
 
 import assert from 'node:assert/strict';
+import path from 'node:path';
 import test from 'node:test';
 import {
   buildBundledRuntimeCandidates,
@@ -33,7 +34,7 @@ test('buildBundledRuntimeCandidates only includes bundled locations', () => {
   });
 
   assert.deepEqual(candidates, [
-    '/app/resources/llama/bin/darwin-arm64/llama-server',
-    '/app/root/runtime/llama/bin/darwin-arm64/llama-server',
+    path.join('/app/resources', 'llama', 'bin', 'darwin-arm64', 'llama-server'),
+    path.join('/app/root', 'runtime', 'llama', 'bin', 'darwin-arm64', 'llama-server'),
   ]);
 });

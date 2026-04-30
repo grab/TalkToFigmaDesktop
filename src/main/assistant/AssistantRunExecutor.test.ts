@@ -7,13 +7,32 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { STORE_KEYS } from '../../shared/constants';
-import type { AssistantInstalledModel, AssistantRunEvent, ToolApprovalRequest } from '../../shared/types';
+import type {
+  AssistantInstalledModel,
+  AssistantMessagePart,
+  AssistantMessagePartTool,
+  AssistantRunEvent,
+  AssistantRunLog,
+  ToolApprovalRequest,
+} from '../../shared/types';
 import { AssistantMessageSerializer } from './AssistantMessageSerializer';
 import { AssistantRunExecutor } from './AssistantRunExecutor';
 import { AssistantRuntimeSettings } from './AssistantRuntimeSettings';
 import { AssistantThreadRepository, type AssistantKeyValueStore } from './AssistantThreadRepository';
-import { AssistantToolExecutor } from './AssistantToolExecutor';
 import { ExceedContextSizeError } from './AssistantErrors';
+import type { LlamaToolCall, LlamaToolDefinition } from './AssistantLlamaTypes';
+
+interface TestExecuteToolCallOptions {
+  runId: string;
+  assistantParts: AssistantMessagePart[];
+  toolCall: LlamaToolCall & { id: string };
+  runDedupeSet?: Set<string>;
+  requestApproval: (request: ToolApprovalRequest) => Promise<boolean>;
+  emitToolPartEvent: (runId: string, part: AssistantMessagePartTool) => void;
+  logRunToolCall: (runId: string, toolCall: AssistantRunLog['toolCalls'][number]) => void;
+  updateRunToolCallApproval: (runId: string, toolCallId: string, approved: boolean) => void;
+  updateRunToolCallResult: (runId: string, toolCallId: string, ok: boolean) => void;
+}
 
 const installedModel: AssistantInstalledModel = {
   id: 'model-a',
@@ -66,14 +85,7 @@ function createExecutor({
     },
   );
   const serializer = new AssistantMessageSerializer(() => settings.getHistoryToolResultLimit());
-  const wsClient = {
-    joinChannel: async () => undefined,
-    isWebSocketConnected: () => false,
-    connect: async () => undefined,
-    getCurrentChannel: () => null,
-    sendCommand: async () => ({}),
-  };
-  const toolExecutor = new AssistantToolExecutor(wsClient as any, serializer);
+  const toolExecutor = createTestToolExecutor(serializer);
   const executor = new AssistantRunExecutor({
     modelLookup: {
       getInstalledModelById: () => installedModel,
@@ -88,6 +100,135 @@ function createExecutor({
   });
 
   return { executor, repository, thread };
+}
+
+function createTestToolExecutor(serializer: AssistantMessageSerializer) {
+  return {
+    buildLlamaTools(): LlamaToolDefinition[] {
+      return [];
+    },
+
+    async executeToolCall(options: TestExecuteToolCallOptions) {
+      const {
+        runId,
+        assistantParts,
+        toolCall,
+        runDedupeSet,
+        requestApproval,
+        emitToolPartEvent,
+        logRunToolCall,
+        updateRunToolCallApproval,
+        updateRunToolCallResult,
+      } = options;
+      const toolName = toolCall.function?.name?.trim() ?? '';
+      const toolCallId = toolCall.id;
+      const args = parseArgs(toolCall.function?.arguments);
+      const safety = toolName === 'create_rectangle' ? 'write' : 'read';
+      const emitPart = (state: AssistantMessagePartTool['state'], result?: unknown, errorText?: string) => {
+        const part = serializer.upsertToolPart(assistantParts, {
+          toolName,
+          toolCallId,
+          safety,
+          state,
+          input: args,
+          ...(result !== undefined ? { output: result } : {}),
+          ...(errorText ? { errorText } : {}),
+        });
+        emitToolPartEvent(runId, part);
+        return part;
+      };
+
+      logRunToolCall(runId, {
+        toolCallId,
+        toolName,
+        args,
+        safety,
+      });
+
+      emitPart('input-available');
+
+      const dedupeKey = `${toolName}:${stableStringify(args)}`;
+      if (runDedupeSet?.has(dedupeKey)) {
+        const duplicateResult = {
+          status: 'duplicate_tool_call_blocked',
+          message: 'The same tool call was already attempted in this run.',
+          toolName,
+        };
+        emitPart('output-error', duplicateResult, duplicateResult.message);
+        updateRunToolCallResult(runId, toolCallId, false);
+        return duplicateResult;
+      }
+      runDedupeSet?.add(dedupeKey);
+
+      if (safety === 'write') {
+        const approved = await requestApproval(createApprovalRequest(runId, toolCallId, toolName, args, safety));
+        updateRunToolCallApproval(runId, toolCallId, approved);
+
+        if (!approved) {
+          const deniedResult = {
+            status: 'tool_execution_rejected',
+            message: 'tool execution rejected',
+            toolName,
+          };
+          emitPart('output-error', deniedResult, deniedResult.message);
+          updateRunToolCallResult(runId, toolCallId, false);
+          return deniedResult;
+        }
+      }
+
+      const result = { ok: true, toolName, args };
+      emitPart('output-available', result);
+      updateRunToolCallResult(runId, toolCallId, true);
+      return result;
+    },
+  };
+}
+
+function createApprovalRequest(
+  runId: string,
+  toolCallId: string,
+  toolName: string,
+  args: Record<string, unknown>,
+  safety: 'read' | 'write',
+): ToolApprovalRequest {
+  return {
+    runId,
+    threadId: 'thread',
+    toolCallId,
+    toolName,
+    args,
+    safety,
+    requestedAt: Date.now(),
+  };
+}
+
+function parseArgs(rawArguments: string | undefined): Record<string, unknown> {
+  if (!rawArguments?.trim()) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(rawArguments);
+    return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
+      ? parsed as Record<string, unknown>
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableStringify(item)).join(',')}]`;
+  }
+
+  const entries = Object.entries(value as Record<string, unknown>)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, val]) => `${JSON.stringify(key)}:${stableStringify(val)}`);
+  return `{${entries.join(',')}}`;
 }
 
 test('AssistantRunExecutor streams tokens and persists final assistant message', async () => {
