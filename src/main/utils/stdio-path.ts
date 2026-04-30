@@ -13,6 +13,14 @@ import { BRANDING } from '@/shared/branding';
 
 const logger = createLogger('stdio');
 
+function quoteShellArg(value: string): string {
+  if (process.platform === 'win32') {
+    return `"${value.replace(/"/g, '\\"')}"`;
+  }
+
+  return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+
 /**
  * Get the absolute path to the MCP stdio server executable
  *
@@ -98,5 +106,5 @@ export function getStdioServerConfig(): object {
  */
 export function getStdioServerCommand(): string {
   const stdioServerPath = getStdioServerDisplayPath(); // Use display path for user configuration
-  return `node ${stdioServerPath}`;
+  return `node ${quoteShellArg(stdioServerPath)}`;
 }

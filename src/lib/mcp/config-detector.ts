@@ -57,9 +57,11 @@ export async function detectConfig(client: McpClient): Promise<ConfigDetectionRe
       try {
         const config = JSON.parse(content)
 
+        const rootKey = client.configRootKey ?? 'mcpServers'
+
         // Check if TalkToFigmaDesktop is configured
         const hasOurServer = Boolean(
-          config.mcpServers?.[client.serverName]
+          config[rootKey]?.[client.serverName] || config.mcpServers?.[client.serverName]
         )
 
         return {

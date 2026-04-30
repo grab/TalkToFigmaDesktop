@@ -73,14 +73,15 @@ export async function autoConfigureClient(
       await fs.copyFile(configPath, backupPath)
     }
 
-    // Ensure mcpServers object exists
-    if (!existingConfig.mcpServers) {
-      existingConfig.mcpServers = {}
+    const rootKey = client.configRootKey ?? 'mcpServers'
+
+    if (!existingConfig[rootKey]) {
+      existingConfig[rootKey] = {}
     }
 
     // Add or update TalkToFigmaDesktop server with stdio configuration
     const stdioServerPath = getStdioServerDisplayPath()
-    existingConfig.mcpServers[client.serverName] = {
+    existingConfig[rootKey][client.serverName] = {
       type: 'stdio',
       command: 'node',
       args: [stdioServerPath],
@@ -188,7 +189,7 @@ export async function verifyConfig(
   try {
     const content = await fs.readFile(expandPath(configPath), 'utf-8')
     const config = JSON.parse(content)
-    return Boolean(config.mcpServers?.[serverName])
+    return Boolean(config.mcpServers?.[serverName] || config.servers?.[serverName])
   } catch {
     return false
   }

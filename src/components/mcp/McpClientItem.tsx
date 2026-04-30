@@ -19,6 +19,24 @@ interface McpClientItemProps {
   client: McpClient
 }
 
+function isWindowsPlatform(): boolean {
+  return navigator.platform.toLowerCase().includes('win')
+}
+
+function quoteShellArg(value: string): string {
+  if (isWindowsPlatform()) {
+    return `"${value.replace(/"/g, '\\"')}"`
+  }
+
+  return `'${value.replace(/'/g, `'\\''`)}'`
+}
+
+function base64EncodeUtf8(value: string): string {
+  const bytes = new TextEncoder().encode(value)
+  const binary = Array.from(bytes, byte => String.fromCharCode(byte)).join('')
+  return btoa(binary)
+}
+
 export function McpClientItem({ client }: McpClientItemProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
@@ -51,11 +69,10 @@ export function McpClientItem({ client }: McpClientItemProps) {
     const configJson = JSON.stringify(config)
     console.log('Config JSON:', configJson)
 
-    // Use Base64 encoding
-    const base64Config = btoa(configJson)
+    const base64Config = base64EncodeUtf8(configJson)
     console.log('Base64 Config:', base64Config)
 
-    const deepLink = `cursor://anysphere.cursor-deeplink/mcp/install?name=${BRANDING.mcpServerName}&config=${base64Config}`
+    const deepLink = `cursor://anysphere.cursor-deeplink/mcp/install?name=${encodeURIComponent(BRANDING.mcpServerName)}&config=${encodeURIComponent(base64Config)}`
     console.log('Full DeepLink:', deepLink)
 
     window.location.href = deepLink
@@ -68,9 +85,11 @@ export function McpClientItem({ client }: McpClientItemProps) {
   // Generate config with actual path
   const getConfigWithPath = () => {
     if (client.id === 'cursor' || client.id === 'vscode' || client.id === 'antigravity') {
+      const rootKey = client.id === 'vscode' ? 'servers' : 'mcpServers'
       const config = {
-        mcpServers: {
+        [rootKey]: {
           [BRANDING.mcpServerName]: {
+            ...(client.id === 'vscode' ? { type: 'stdio' } : {}),
             command: 'node',
             args: [stdioPath]
           }
@@ -83,14 +102,11 @@ export function McpClientItem({ client }: McpClientItemProps) {
 
   const getCliCommand = () => {
     if (client.id === 'claude-code') {
-      // Wrap path in quotes if it contains spaces
-      const quotedPath = stdioPath.includes(' ') ? `"${stdioPath}"` : stdioPath
-      return `claude mcp add ${BRANDING.mcpServerName} node ${quotedPath}`
+      return `claude mcp add ${BRANDING.mcpServerName} node ${quoteShellArg(stdioPath)}`
     }
     if (client.id === 'codex') {
       // Codex requires `--` before the executable command.
-      const shellQuotedPath = `'${stdioPath.replace(/'/g, `'\\''`)}'`
-      return `codex mcp add ${BRANDING.mcpServerName} -- node ${shellQuotedPath}`
+      return `codex mcp add ${BRANDING.mcpServerName} -- node ${quoteShellArg(stdioPath)}`
     }
     return client.cliCommand || ''
   }

@@ -104,9 +104,11 @@ Status indicators:
 ```json
 {
   "mcpServers": {
-    "TalkToFigma": {
-      "command": "/Users/yourname/Library/Application Support/TalkToFigma/mcp-server.cjs",
-      "args": []
+    "TalkToFigmaDesktop": {
+      "command": "node",
+      "args": [
+        "/Users/yourname/Library/Application Support/TalkToFigma/mcp-server.cjs"
+      ]
     }
   }
 }
@@ -115,7 +117,8 @@ Status indicators:
 > [!TIP]
 > The stdio server is automatically installed to:
 > - **macOS**: `~/Library/Application Support/TalkToFigma/mcp-server.cjs`
-> - **Windows**: `%APPDATA%\TalkToFigma\mcp-server.cjs`
+> - **Windows direct install**: `%APPDATA%\TalkToFigma\mcp-server.cjs`
+> - **Windows Store/MSIX**: the Settings page shows the exact redirected path under `%LOCALAPPDATA%\Packages\...\LocalCache\Roaming\TalkToFigma\mcp-server.cjs`
 
 ### 4. Install Figma Plugin
 
@@ -231,14 +234,15 @@ The project is built with modern web technologies:
 **Solutions**:
 1. Verify stdio server path in client configuration:
    - **macOS**: `~/Library/Application Support/TalkToFigma/mcp-server.cjs`
-   - **Windows**: `%APPDATA%\TalkToFigma\mcp-server.cjs`
+   - **Windows direct install**: `%APPDATA%\TalkToFigma\mcp-server.cjs`
+   - **Windows Store/MSIX**: use the exact path shown in the Settings page
 2. Check if file exists:
-   ```bash
-   # macOS
-   ls -la ~/Library/Application\ Support/TalkToFigma/mcp-server.cjs
-   # Windows
-   dir %APPDATA%\TalkToFigma\mcp-server.cjs
-   ```
+    ```bash
+    # macOS
+    ls -la ~/Library/Application\ Support/TalkToFigma/mcp-server.cjs
+    # Windows direct install
+    dir %APPDATA%\TalkToFigma\mcp-server.cjs
+    ```
 3. Ensure desktop app is running before starting MCP client
 4. Restart MCP client after updating configuration
 

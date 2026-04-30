@@ -13,6 +13,7 @@ export interface McpClient {
   displayName: string
   configPath?: string // Optional - some clients don't use config files
   configFormat: 'json' | 'cli' | 'deeplink' | 'unknown'
+  configRootKey?: 'mcpServers' | 'servers'
   serverName: string // Always "TalkToFigmaDesktop"
   installMethod: InstallMethod
   config?: object // Optional - for JSON configs
@@ -90,14 +91,16 @@ export const MCP_CLIENTS: Record<string, McpClient> = {
   vscode: {
     id: 'vscode',
     displayName: 'VS Code',
-    configPath: '~/.vscode/mcp.json', // Approximate - may vary
+    configPath: '~/.vscode/mcp.json', // Workspace settings may also use .vscode/mcp.json
     configFormat: 'json',
+    configRootKey: 'servers',
     serverName: BRANDING.mcpServerName,
     installMethod: 'manual',
     description: 'Use VS Code to install the MCP server',
     config: {
-      mcpServers: {
+      servers: {
         [BRANDING.mcpServerName]: {
+          type: 'stdio',
           command: 'node',
           args: ['<STDIO_SERVER_PATH>']  // Replace with actual path to mcp-stdio-server.js
         }

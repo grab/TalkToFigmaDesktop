@@ -22,12 +22,21 @@ export function getInstallPaths() {
   const homeDir = os.homedir();
   const platform = process.platform;
 
-  // Application Support location (works in all environments including sandboxed)
+  // app.getPath('appData') reflects MSIX/Windows Store package redirection.
   let appSupportDir: string;
   if (platform === 'darwin') {
     appSupportDir = path.join(homeDir, 'Library', 'Application Support', BRANDING.mcpServerDirName);
   } else if (platform === 'win32') {
-    appSupportDir = path.join(process.env.APPDATA || path.join(homeDir, 'AppData', 'Roaming'), BRANDING.mcpServerDirName);
+    const fallbackAppData = process.env.APPDATA || path.join(homeDir, 'AppData', 'Roaming');
+    let appDataDir = fallbackAppData;
+
+    try {
+      appDataDir = app.getPath('appData') || fallbackAppData;
+    } catch (error) {
+      logger.warn('[stdio-installer] Failed to resolve Electron appData path, using APPDATA fallback', { error });
+    }
+
+    appSupportDir = path.join(appDataDir, BRANDING.mcpServerDirName);
   } else {
     throw new Error(`Unsupported platform: ${platform}. ${BRANDING.productName} supports macOS and Windows only.`);
   }
