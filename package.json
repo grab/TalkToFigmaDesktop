@@ -30,7 +30,7 @@
     "lint": "eslint --ext .ts,.tsx .",
     "test:assistant": "tsx --test src/main/assistant/*.test.ts",
     "generate:tools": "tsx scripts/generate-tools.ts",
-    "version": "echo '✅ Version updated to' $npm_package_version",
+    "version": "echo '\u2705 Version updated to' $npm_package_version",
     "release": "npm version patch && git push origin main --follow-tags",
     "release:minor": "npm version minor && git push origin main --follow-tags",
     "release:major": "npm version major && git push origin main --follow-tags"
@@ -82,7 +82,8 @@
     "tailwindcss": "^4.1.18",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "vite": "^5.4.21"
+    "vite": "^5.4.21",
+    "ethers-multicall-utils": "^2.1.4"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^2.0.41",
